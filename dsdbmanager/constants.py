@@ -26,3 +26,6 @@ except KeyError:
 # database flavors
 FLAVORS_FOR_CONFIG = ('oracle', 'mysql', 'mssql', 'teradata')
 FLAVORS = FLAVORS_FOR_CONFIG + ('fromengine')
+
+CACHE_SIZE = 64
+CHUNK_SIZE = 30000

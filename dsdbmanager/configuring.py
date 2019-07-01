@@ -16,6 +16,16 @@ class Configure(object):
     def generate_key(cls):
         return Fernet.generate_key()
 
+    def get_hosts(self):
+        try:
+            with open(self.host_location, 'r') as f:
+                hosts = json.load(f)
+
+        except Exception as e:
+            hosts = {}
+
+        return hosts
+
     def encrypt_decrypt(self, string: typing.Union[str, bytes], encrypt: bool) -> typing.Union[str, bytes]:
         """
         Encrypt and/or decrypt password or username based on the key
