@@ -160,10 +160,11 @@ class ConfigFilesManager(object):
         # additional_infos
         host = click.prompt("Host/Database Address", type=str)
         schema = click.prompt("Schema - Enter if none", default='', type=str)
+        sid = click.prompt("SID - Enter if none", default='', type=str)
         service_name = click.prompt("Service Name - Enter if none", default='', type=str)
         port = click.prompt("Port Number - Enter if none", default=-1, type=int)
 
-        host_dict = dict(name=name, host=host, schema=schema, port=port, service_name=service_name)
+        host_dict = dict(name=name, host=host, schema=schema, port=port, service_name=service_name, sid=sid)
 
         # we don't want to store schema, service name or port if they are not required
         if not schema:
@@ -171,6 +172,9 @@ class ConfigFilesManager(object):
 
         if not service_name:
             _ = host_dict.pop('service_name')
+
+        if not sid:
+            _ = host_dict.pop('sid')
 
         if port == -1:
             _ = host_dict.pop('port')
