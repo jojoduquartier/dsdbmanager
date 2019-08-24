@@ -153,6 +153,8 @@ def complex_filter_maker(tbl: sa.Table, item: typing.Tuple[str, typing.Any],
     Returns:
 
     """
+    raise NotImplementedError("Yet to be implemented")
+    
     if not isinstance(tbl, sa.Table):
         raise Exception("table argument is not a sqlAlchemy Table")
 

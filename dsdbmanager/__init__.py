@@ -1,7 +1,7 @@
 import json
-from .configuring import Configure
+from .configuring import ConfigFilesManager
 
-configurer = Configure()
+configurer = ConfigFilesManager()
 
 # first initialize empty files
 # if there are no host files, create an empty json file #

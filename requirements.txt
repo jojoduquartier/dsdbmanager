@@ -1,4 +1,5 @@
 sqlalchemy
+numpy
 pandas
 toolz
 cryptography

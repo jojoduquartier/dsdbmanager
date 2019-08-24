@@ -2,11 +2,12 @@ import json
 import click
 import typing
 import pathlib
+import warnings
 from cryptography.fernet import Fernet
 from .constants import HOST_PATH, CREDENTIAL_PATH, KEY_PATH, FLAVORS_FOR_CONFIG
 
 
-class Configure(object):
+class ConfigFilesManager(object):
     def __init__(self):
         self.host_location: pathlib.Path = HOST_PATH
         self.credential_location: pathlib.Path = CREDENTIAL_PATH
@@ -41,7 +42,7 @@ class Configure(object):
         fernet = Fernet(key)
 
         if encrypt:
-            return fernet.encrypt()
+            return fernet.encrypt(string)
 
         return fernet.decrypt(string)
 
@@ -87,7 +88,7 @@ class Configure(object):
 
         return username.encode(), password.encode()
 
-    def write_credentials(self, flavor: str, name: str, username: bytes, password: bytes, skip_open=False):
+    def write_credentials(self, flavor: str, name: str, username: bytes, password: bytes, credential_dict=None):
         """
         Writes encrypted credentials to file
         Args:
@@ -95,32 +96,37 @@ class Configure(object):
             name:
             username:
             password:
-            skip_open:
+            credential_dict:
 
         Returns:
 
         """
-        if not skip_open:
+        if not credential_dict:
             try:
                 with open(self.credential_location) as f:
-                    credential_file = json.load(f)
+                    credential_dict = json.load(f)
             except OSError as e:
                 raise e
 
-        if flavor not in credential_file:
-            credential_file[flavor] = {}
+        if flavor not in credential_dict:
+            credential_dict[flavor] = {}
 
-        if name not in credential_file[flavor]:
-            credential_file[flavor] = {
+        if name not in credential_dict[flavor]:
+            credential_dict[flavor] = {
                 name: {
                     'username': username.decode("utf-8"),
                     'password': password.decode("utf-8")
                 }
             }
+        else:
+            credential_dict[flavor][name] = {
+                'username': username.decode("utf-8"),
+                'password': password.decode("utf-8")
+            }
 
         try:
             with open(self.credential_location, 'w') as f:
-                json.dump(credential_file, f)
+                json.dump(credential_dict, f)
         except OSError as e:
             raise e
 
@@ -243,15 +249,17 @@ class Configure(object):
     def reset_credentials(self):
         try:
             with open(self.credential_location) as f:
-                credential_file = json.load(f)
+                credential_dict = json.load(f)
         except OSError as e:
             raise e
+
+        warnings.warn("Database connection will not be tested with these credentials")
 
         # database flavor
         flavor: str = click.prompt("Database flavor", type=click.Choice(FLAVORS_FOR_CONFIG))
         flavor = flavor.strip()
 
-        if flavor not in credential_file:
+        if flavor not in credential_dict:
             raise Exception(f"There are no databases with {flavor} flavor")
 
         # database name
@@ -261,10 +269,10 @@ class Configure(object):
         )
         name = name.strip()
 
-        if name not in credential_file[flavor]:
+        if name not in credential_dict[flavor]:
             raise Exception(f"There are no {name} databases under the {flavor} flavor")
 
-        username = credential_file[flavor][name].get('username')
+        username = credential_dict[flavor][name].get('username')
         username = self.encrypt_decrypt(username, encrypt=False)
 
         confirmation = click.confirm(f"Current username is {username}. Do you wish to keep it?")
@@ -279,6 +287,6 @@ class Configure(object):
         password = self.encrypt_decrypt(password, encrypt=True)
 
         # write
-        self.write_credentials(flavor, name, username, password, skip_open=True)
+        self.write_credentials(flavor, name, username, password, credential_dict)
 
         return None

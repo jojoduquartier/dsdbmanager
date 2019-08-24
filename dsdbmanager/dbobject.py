@@ -1,4 +1,3 @@
-import json
 import time
 import typing
 import toolz
@@ -8,492 +7,386 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.exc as exc
+
+from .mssql import Mssql
+from .mysql import Mysql
+from .oracle import Oracle
+from .teradata import Teradata
 from sqlalchemy.engine import reflection
-from .utils import d_frame, inspect_table, filter_maker, complex_filter_maker
-from .constants import HOST_PATH, FLAVORS, CACHE_SIZE, CHUNK_SIZE
-from .configuring import Configure
+from .configuring import ConfigFilesManager
+from .utils import d_frame, inspect_table, filter_maker
+from .constants import FLAVORS_FOR_CONFIG, CACHE_SIZE, CHUNK_SIZE
 
 host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 update_key_type = typing.Union[typing.Tuple[str, ...], typing.Dict[str, str]]
 table_middleware_type = typing.Callable[..., typing.Tuple[np.ndarray, typing.Tuple[str, ...]]]
+connection_object_type = typing.Union[
+    Oracle,
+    Teradata,
+    Mysql,
+    Mssql
+]
 
 
-class Connector(object):
-    def __init__(self):
-        if not HOST_PATH.exists():
-            raise Exception("No Host File Available")
-
-        with open(HOST_PATH, 'r') as fp:
-            host_data = json.load(fp)
-
-        # if the host file is empty
-        if not host_data:
-            raise Exception("Empty Host File")
-
-        for flavor in FLAVORS:
-            self.__setattr__(flavor, factory(flavor))
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-
-def factory(flavor: str):
+def util_function(table_name: str, engine: sa.engine.base.Engine, schema: str) -> sa.Table:
     """
 
     Args:
-        flavor:
+        table_name:
+        engine:
+        schema:
+
+    Returns:
+
+    """
+    try:
+        return sa.Table(table_name, sa.MetaData(engine, schema=schema), autoload=True)
+    except exc.NoSuchTableError as e:
+        raise e
+
+
+def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engine, schema: str) -> int:
+    """
+
+    Args:
+        df:
+        table_name:
+        engine:
+        schema:
 
     Returns:
 
     """
 
-    class FromEngine(object):
-        def __init__(self, db: str, pre_made_engine: sa.engine.base.Engine):
-            self.__setattr__(db, db_middleware(None, db, pre_made_engine=pre_made_engine))
+    # get the table
+    tbl = util_function(table_name, engine, schema)
 
-    class Oracle(object):
-        def __init__(self):
-            with open(HOST_PATH, 'r') as fp:
-                host_dict = json.load(fp)
+    # change all nan to None
+    groups = toolz.partition_all(CHUNK_SIZE, df.where(pd.isnull(df), None).to_dict(orient='records'))
 
-            for db in host_dict.get('oracle'):
-                self.__setattr__(db, db_middleware('oracle', db, host_dict=host_dict))
-
-        @classmethod
-        def create_engine(cls, host: str = None, port: int = 1521, sid: str = None, user: str = None, pwd: str = None,
-                          **kwargs):
-            try:
-                from cx_Oracle import makedsn
-            except ImportError as e:
-                raise e
-
-            if 'service_name' in kwargs:
-                dsn = makedsn(host, port, service_name=kwargs.get('service_name'))
-            else:
-                dsn = makedsn(host, port, sid=sid)
-
-            return sa.create_engine(f'oracle://{user}:{pwd}@{dsn}')
-
-    class Teradata(object):
-        def __init__(self):
-            with open(HOST_PATH, 'r') as fp:
-                host_dict = json.load(fp)
-
-            for db in host_dict.get('teradata'):
-                self.__setattr__(db, db_middleware('teradata', db, host_dict=host_dict))
-
-        @classmethod
-        def create_engine(cls, host: str = None, user: str = None, pwd: str = None, **kwargs):
-            try:
-                import sqlalchemy_teradata
-            except ImportError as e:
-                raise e
-
-            return sa.create_engine(f'teradata://{user}:{pwd}@{host}')
-
-    class Mssql(object):
-        def __init__(self):
-            with open(HOST_PATH, 'r') as fp:
-                host_dict = json.load(fp)
-
-            for db in host_dict.get('mssql'):
-                self.__setattr__(db, db_middleware('mssql', db, host_dict=host_dict))
-
-        @classmethod
-        def create_engine(cls, db: str = None, host: str = None, user: str = None, pwd: str = None, **kwargs):
-            try:
-                import pymssql
-            except ImportError as e:
-                raise e
-
-            if 'port' not in kwargs:
-                return sa.create_engine(f'mssql+pymsql://{user}:{pwd}@{host}/{db}')
-
-            port = kwargs.get('port')
-            return sa.create_engine(f'mssql+pymsql://{user}:{pwd}@{host}{port}/{db}')
-
-    class Mysql(object):
-        def __init__(self):
-            with open(HOST_PATH, 'r') as fp:
-                host_dict = json.load(fp)
-
-            for db in host_dict.get('mysql'):
-                self.__setattr__(db, db_middleware('mysql', db, host_dict=host_dict))
-
-        @classmethod
-        def create_engine(cls, db: str = None, host: str = None, user: str = None, pwd: str = None, **kwargs):
-            try:
-                import pymysql
-            except ImportError as e:
-                raise e
-
-            if 'port' not in kwargs:
-                return sa.create_engine(f'mysql+pymysql://{user}:{pwd}@{host}:/{db}')
-
-            port = kwargs.get('port')
-            return sa.create_engine(f'mysql+pymysql://{user}:{pwd}@{host}:{port}/{db}')
-
-    if flavor.lower().strip() == 'oracle':
-        return Oracle
-
-    if flavor.lower().strip() == 'teradata':
-        return Teradata
-
-    if flavor.lower().strip() == 'mssql':
-        return Mssql
-
-    if flavor.lower().strip() == 'mysql':
-        return Mysql
-
-    if flavor.lower().strip() == 'fromengine':
-        return FromEngine
-
-
-def db_middleware(flavor: str, db: str, host_dict: host_type = {}, pre_made_engine: sa.engine.base.Engine = None):
-    """
-
-    Args:
-        flavor:
-        db:
-        host_dict:
-        pre_made_engine:
-
-    Returns:
-
-    """
-
-    def util_function(table_: str, engine_: sa.engine.base.Engine, schema_: str) -> sa.Table:
-        """
-
-        Args:
-            table_:
-            engine_:
-            schema_:
-
-        Returns:
-
-        """
+    # insert
+    count, last_successful_insert = 0, None
+    for group in groups:
         try:
-            return sa.Table(table_, sa.MetaData(engine_, schema=schema_), autoload=True)
-        except exc.NoSuchTableError as e:
-            raise e
+            result = engine.execute(tbl.insert(), group)
+            last_successful_insert = group[-1]
+            count += result.rowcount
+        except exc.OperationalError as _:
+            "Try Again"
+            time.sleep(2)
 
-    def insert_into_table(df: pd.DataFrame, table_: str, engine_: sa.engine.Engine, schema_: str) -> int:
-        """
-
-        Args:
-            df:
-            table_:
-            engine_:
-            schema_:
-
-        Returns:
-
-        """
-
-        # get the table
-        tbl = util_function(table_, engine_, schema_)
-
-        # change all nan to None
-        groups = toolz.partition_all(CHUNK_SIZE, df.where(pd.isnull(df), None).to_dict(orient='records'))
-
-        # insert
-        count, last_successful_insert = 0, None
-        for group in groups:
             try:
-                result = engine_.execute(tbl.insert(), group)
+                result = engine.execute(tbl.insert(), group)
                 last_successful_insert = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as _:
-                "Try Again"
-                time.sleep(2)
+            except exc.OperationalError as e:
+                raise Exception(f"Failed to insert records. Last successfull{last_successful_insert}", e)
 
-                try:
-                    result = engine_.execute(tbl.insert(), group)
-                    last_successful_insert = group[-1]
-                    count += result.rowcount
-                except exc.OperationalError as e:
-                    raise Exception(f"Failed to insert records. Last successfull{last_successful_insert}", e)
+    return count
 
-        return count
 
-    def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_type, table_: str,
-                        engine_: sa.engine.base.Engine, schema_: str) -> int:
-        """
+def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_type, table_name: str,
+                    engine: sa.engine.base.Engine, schema: str) -> int:
+    """
 
-        Args:
-            df:
-            keys:
-            values:
-            table_:
-            engine_:
-            schema_:
+    Args:
+        df:
+        keys:
+        values:
+        table_name:
+        engine:
+        schema:
 
-        Returns:
+    Returns:
 
-        """
+    """
 
-        # get table
-        tbl = util_function(table_, engine_, schema_)
+    # get table
+    tbl = util_function(table_name, engine, schema)
 
-        # change nan to None, make sure columns are modified so that we can easily bindparam
-        df_ = df.copy()
-        df_.columns = [f"{el.lower()}_updt" for el in df_.columns]
-        groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.isnull(df_), None).to_dict(orient='records'))
+    # change nan to None, make sure columns are modified so that we can easily bindparam
+    df_ = df.copy()
+    df_.columns = [f"{el.lower()}_updt" for el in df_.columns]
+    groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.isnull(df_), None).to_dict(orient='records'))
 
-        # create where clause, and update statement
-        if isinstance(keys, tuple):
-            if not isinstance(values, tuple):
-                raise Exception("keys and values must either be both tuples or both dicts")
+    # create where clause, and update statement
+    if isinstance(keys, tuple):
+        if not isinstance(values, tuple):
+            raise Exception("keys and values must either be both tuples or both dicts")
 
-            where = [tbl.c[el] == sa.bindparam(f"{el.lower()}_updt") for el in keys]
-            update_statement = tbl.update().where(sa.and_(*where)).values(
-                dict((a, sa.bindparam(f"{a.lower()}_updt")) for a in values)
-            )
+        where = [tbl.c[el] == sa.bindparam(f"{el.lower()}_updt") for el in keys]
+        update_statement = tbl.update().where(sa.and_(*where)).values(
+            dict((a, sa.bindparam(f"{a.lower()}_updt")) for a in values)
+        )
 
-        if isinstance(keys, dict):
-            if not isinstance(values, dict):
-                raise Exception("keys and values must either be both tuples or both dicts")
-            where = [tbl.c[k] == sa.bindparam(f"{v.lower()}_updt") for k, v in keys.items()]
-            update_statement = tbl.update().where(sa.and_(*where)).values(
-                dict((k, sa.bindparam(f"{v.lower()}_updt")) for k, v in values.items())
-            )
+    if isinstance(keys, dict):
+        if not isinstance(values, dict):
+            raise Exception("keys and values must either be both tuples or both dicts")
+        where = [tbl.c[k] == sa.bindparam(f"{v.lower()}_updt") for k, v in keys.items()]
+        update_statement = tbl.update().where(sa.and_(*where)).values(
+            dict((k, sa.bindparam(f"{v.lower()}_updt")) for k, v in values.items())
+        )
 
-        # update
-        count, last_successful_update = 0, None
-        for group in groups:
+    # update
+    count, last_successful_update = 0, None
+    for group in groups:
+        try:
+            result = engine.execute(update_statement, group)
+            last_successful_update = group[-1]
+            count += result.rowcount
+        except exc.OperationalError as _:
+            # try again
+            time.sleep(2)
+
             try:
-                result = engine_.execute(update_statement, group)
+                result = engine.execute(update_statement, group)
                 last_successful_update = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as _:
-                # try again
-                time.sleep(2)
+            except exc.OperationalError as e:
+                raise Exception(f"Failed to update records. Lase succesful update: {last_successful_update}", e)
 
-                try:
-                    result = engine_.execute(update_statement, group)
-                    last_successful_update = group[-1]
-                    count += result.rowcount
-                except exc.OperationalError as e:
-                    raise Exception(f"Failed to update records. Lase succesful update: {last_successful_update}", e)
+    return count
 
-        return count
 
-    def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = None) -> table_middleware_type:
+def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = None):
+    """
+    This does not directly look for the tables; it simply gives a function that can be used to specify
+    number of rows and columns etc.
+    :param engine:
+    :param table:
+    :param schema:
+    :return:
+    """
+
+    @d_frame
+    @functools.lru_cache(CACHE_SIZE)
+    def wrapped(
+            rows: int = None,
+            columns: typing.Tuple[str, ...] = None,
+            **kwargs
+    ) -> typing.Tuple[np.ndarray, typing.Tuple[str, ...]]:
         """
 
-        Args:
-            engine:
-            table:
-            schema:
-
-        Returns:
-
+        :param rows:
+        :param columns:
+        :param kwargs:
+        :return:
         """
 
-        @d_frame
-        @functools.lru_cache(CACHE_SIZE)
-        def wrapped(
-                rows: int = None,
-                columns: typing.Tuple[str, ...] = None,
-                between: typing.Tuple[str, typing.Tuple[typing.Any, typing.Any]] = None,
-                less_than: typing.Tuple[str, typing.Any] = None,
-                less_than_or_equal: typing.Tuple[str, typing.Any] = None,
-                greater_than: typing.Tuple[str, typing.Any] = None,
-                greater_than_or_equal: typing.Tuple[str, typing.Any] = None,
-                like: typing.Tuple[str, str] = None,
-                not_like: typing.Tuple[str, str] = None,
-                not_in: typing.Tuple[str, typing.Tuple[typing.Any, ...]] = None,
-                **kwargs
-        ) -> typing.Tuple[np.ndarray, typing.Tuple[str, ...]]:
-            """
+        tbl = util_function(table, engine, schema)
 
-            Args:
-                rows:
-                columns:
-                between:
-                less_than:
-                less_than_or_equal:
-                greater_than:
-                greater_than_or_equal:
-                like:
-                not_like:
-                not_in:
-                **kwargs:
+        # query
+        tbl_cols = [el.name for el in tbl.columns]
+        if columns is None:
+            query = sa.select([tbl])
+        else:
+            # check if all columns are in table
+            not_in_table = set(columns) - set(tbl_cols)
+            if len(not_in_table) > 0:
+                pass
 
-            Returns:
+            tbl_cols = [el for el in columns if el in tbl_cols]
+            query = sa.select([tbl.c[col] for col in tbl_cols])
 
-            """
+        if kwargs:
+            filters = [filter_maker(tbl, el, val) for el, val in kwargs.items()]
+            query = query.where(sa.and_(*filters))
 
-            tbl = util_function(table, engine, schema)
+        # execute
+        results = engine.execute(query)
 
-            # query
-            tbl_cols = [el.name for el in tbl.columns]
-            if columns is None:
-                query = sa.select([tbl])
-            else:
-                # check if all columns are in table
-                not_in_table = set(columns) - set(tbl_cols)
-                if len(not_in_table) > 0:
-                    pass
+        # fetch
+        if rows is not None:
+            array = results.fetchmany(rows)
+        else:
+            array = results.fetchall()
 
-                tbl_cols = [el for el in columns if el in tbl_cols]
-                query = sa.select([tbl.c[col] for col in tbl_cols])
+        results.close()
 
-            # TODO - we could check if the first item of each of this is a tuple
-            # that way user could do: between = ((column1, value1, value2), (column2, value3, value4), ...)
-            # then we just do complex_filter_maker(*something)
+        # return dataframe
+        arr, cols = np.array(array), tuple(tbl_cols)
+        arr.flags.writeable = False
+        return arr, cols
 
-            if less_than is not None:
-                query = query.where(complex_filter_maker(tbl, less_than, 'lt'))
+    return wrapped
 
-            if less_than_or_equal is not None:
-                query = query.where(complex_filter_maker(tbl, less_than_or_equal, 'le'))
 
-            if greater_than is not None:
-                query = query.where(complex_filter_maker(tbl, greater_than, 'gt'))
+@toolz.curry
+def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
+                  connection_object: connection_object_type, connect_only: bool = False, schema: str = None):
+    """
+    Try connecting to the database. Write credentials on success. Using a function only so that the connection
+    is only attempted when function is called.
+    :param config_manager:
+    :param flavor:
+    :param db_name:
+    :param connection_object:
+    :param connect_only:
+    :param schema:
+    :return:
+    """
 
-            if greater_than_or_equal is not None:
-                query = query.where(complex_filter_maker(tbl, greater_than_or_equal, 'ge'))
+    username, password = config_manager.read_credentials(flavor, db_name)
 
-            if between is not None:
-                query = query.where(complex_filter_maker(tbl, between, 'bw'))
+    if username is None or password is None:
+        write_credentials = True
+        username, password = config_manager.ask_credentials()
+    else:
+        write_credentials = False
 
-            if like is not None:
-                query = query.where(complex_filter_maker(tbl, like, 'like'))
+    engine: sa.engine.base.Engine = connection_object.create_engine(
+        config_manager.encrypt_decrypt(username, encrypt=False).decode("utf-8"),
+        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8")
+    )
 
-            if not_like is not None:
-                query = query.where(complex_filter_maker(tbl, not_like, 'not_like'))
+    try:
+        engine.connect().close()
+    except exc.DatabaseError as e:
+        raise e
 
-            if not_in is not None:
-                query = query.where(complex_filter_maker(tbl, not_in, 'not_in'))
+    if write_credentials:
+        config_manager.write_credentials(flavor, db_name, username, password)
 
-            if kwargs:
-                filters = [filter_maker(tbl, el, val) for el, val in kwargs.items()]
-                query = query.where(sa.and_(*filters))
+    middleware = DbMiddleware(engine, connect_only, schema)
+    return middleware
 
-            # execute
-            results = engine.execute(query)
 
-            # fetch
-            if rows is not None:
-                array = results.fetchmany(rows)
-            else:
-                array = results.fetchall()
+class DbMiddleware(object):
+    def __init__(self, engine, connect_only, schema):
+        self.engine = engine
 
-            results.close()
+        if connect_only:
+            inspection = reflection.Inspector.from_engine(self.engine)
+            views = inspection.get_view_names(schema=schema)
+            tables = inspection.get_table_names(schema=schema)
 
-            # return dataframe
-            arr, cols = np.array(array), tuple(tbl_cols)
-            arr.flags.writeable = False
-            return arr, cols
+            if not (tables + views):
+                pass
+            self.m = TableMeta(self.engine, schema, tables + views)
+            self.x = TableInsert(self.engine, schema, tables + views)
+            self.u = TableUpdate(self.engine, schema, tables + views)
 
-        return wrapped
+            for table in tables + views:
+                self.__setattr__(table, table_middleware(self.engine, table, schema=schema))
 
-    def object_creation(table_schema: str = None, connect_only: bool = False):
-        """
+    def __getitem__(self, item):
+        return self.__dict__[item]
 
-        Args:
-            table_schema:
-            connect_only:
+    def __enter__(self):
+        return self
 
-        Returns:
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.engine.dispose()
+        properties = map(toolz.first, inspect.getmembers(self))
+        methods_only = map(toolz.first, inspect.getmembers(self, inspect.ismethod))
+        attributes = filter(lambda x: not x.startswith('__'), set(properties) - set(methods_only))
+        for attribute in attributes:
+            delattr(self, attribute)
 
-        """
 
-        class DbObject(object):
-            def __setattr__(self, key, value):
-                self.__dict__[key] = value
+class DsDbManager(object):
+    """
+    oracle = DsDbManager('oracle') # will create the object with databases as properties/methods
+    oracle.somedatabase  # a function to call with <connect_only, schema>
+    -or-
+    oracle['some data base']
+    """
 
-            def __getitem__(self, key):
-                return getattr(self, key)
+    def __init__(self, flavor: str):
+        if flavor.lower() not in FLAVORS_FOR_CONFIG:
+            raise Exception(f"Invalid flavor: expected one of {', '.join(FLAVORS_FOR_CONFIG)}, got {flavor}")
 
-            def __init__(self, flavor: str, db: str, schema: str = table_schema):
+        self.flavor = flavor
+        self.config_file_manager = ConfigFilesManager()
+        self.host_dict = self.config_file_manager.get_hosts()
+
+        if not self.host_dict:
+            raise Exception("Host file is empty. Consider adding some databases")
+
+        # available databases
+        self.available_databases = list(self.host_dict.get(flavor).keys())
+
+        for db_name in self.available_databases:
+            self.__setattr__(
+                db_name,
+                db_middleware(
+                    self.config_file_manager,
+                    self.flavor,
+                    db_name,
+                    self.connection_object_creator(db_name)
+                )
+            )
+
+    def connection_object_creator(self, db_name: str):
+        if self.flavor.lower() == 'oracle':
+            return Oracle(db_name, self.host_dict)
+
+        if self.flavor.lower() == 'teradata':
+            return Teradata(db_name, self.host_dict)
+
+        if self.flavor.lower() == 'mssql':
+            return Mssql(db_name, self.host_dict)
+
+        if self.flavor.lower() == 'mysql':
+            return Mysql(db_name, self.host_dict)
+
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
+
+class TableMeta(object):
+    """
+    We have to create distinct functions for each table. Once the function is called, the metadata is provided
+    """
+
+    def __init__(self, engine: sa.engine.base.Engine, schema: str, tables: typing.Tuple[str, ...]):
+        for table in tables:
+            def meta_function(t: str = table):
+                tbl = util_function(t, engine, schema)
+                return inspect_table(tbl)
+
+            self.__setattr__(table, meta_function)
+
+
+class TableInsert(object):
+    """
+    distinct functions for each table
+    """
+
+    def __init__(self, engine: sa.engine.base.Engine, schema: str, tables: typing.Tuple[str, ...]):
+        for table in tables:
+            insert_function = functools.partial(insert_into_table, engine=engine, schema=schema)
+
+            def insert_func(df: pd.DataFrame, t: str = table):
                 """
 
-                Args:
-                    flavor:
-                    db:
-                    schema:
+                :param df:
+                :param t:
+                :return:
+                """
+                return insert_function(df, t)
+
+            self.__setattr__(table, insert_func)
+
+
+class TableUpdate(object):
+    """
+    distinct functions for each table
+    """
+
+    def __init__(self, engine: sa.engine.base.Engine, schema: str, tables: typing.Tuple[str, ...]):
+        for table in tables:
+            update_function = functools.partial(update_on_table, engine=engine, schema=schema)
+
+            def update_func(df: pd.DataFrame, keys: update_key_type, values: update_key_type, t: str = table):
                 """
 
-                self.configurer = Configure()
-                creds = self.configurer.read_credentials(flavor, db)
+                :param df:
+                :param keys:
+                :param values:
+                :param t:
+                :return:
+                """
+                return update_function(df, keys, values, t)
 
-                if pre_made_engine is None and creds is None:
-                    user, pwd = self.configurer.ask_credentials()
-                else:
-                    if pre_made_engine is None:
-                        user, pwd = creds
-
-                if pre_made_engine is None:
-                    connector = Connector()
-                    cred_dict = host_dict.get(flavor).get(db)
-                    cred_dict.update(
-                        {
-                            'user': self.configurer.encrypt_decrypt(user, False).decode('utf-8'),
-                            'pwd': self.configurer.encrypt_decrypt(pwd, False).decode('utf-8')
-                        }
-                    )
-                    self.sqlEngine = connector[flavor].create_engine(db=db, **cred_dict)
-                else:
-                    self.sqlEngine = pre_made_engine
-
-                # test connection
-                try:
-                    self.sqlEngine.connect().close()
-
-                    # write credentials when succeeded
-                    if pre_made_engine is None and creds is None:
-                        self.configurer.write_credentials(flavor, db, user, pwd)
-
-                    self.flavor = flavor if pre_made_engine is None else pre_made_engine.dialect.name.lower()
-                    if pre_made_engine is None:
-                        self.schema = cred_dict.get('schema') if schema is None else schema
-                    else:
-                        self.schema = pre_made_engine.dialect.default_schema_name if schema is None else schema
-
-                    if not connect_only:
-                        insp = reflection.Inspector.from_engine(self.sqlEngine)
-                        views = insp.get_view_names(schema=self.schema)
-                        tables = insp.get_table_names(schema=self.schema)
-
-                        if not (tables + views):
-                            pass
-                        self.m = TableMeta(self.sqlEngine, self.schema, tables + views)
-                        self.x = TableInsert(self.sqlEngine, self.schema, tables + views)
-                        self.u = TableUpdate(self.sqlEngine, self.schema, tables + views)
-
-                        for table in tables + views:
-                            self.__setattr__(table, table_middleware(self.sqlEngine, table, schema=self.schema))
-                except exc.DatabaseError as e:
-                    raise e
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                # dispose of engine
-                self.sqlEngine.dispose()
-
-                # remove properties
-                properties = map(toolz.first, inspect.getmembers(self))
-                methods_only = map(toolz.first, inspect.getmembers(self, inspect.ismethod))
-                attributes = filter(lambda x: not x.startswith('__'), set(properties) - set(methods_only))
-                for attribute in attributes:
-                    delattr(self, attribute)
-
-                self.merge = lambda: None
-                self.execute_raw_sql = lambda: None
-
-        class TableMeta(object):
-            def __init__(self, engine_: sa.engine.base.Engine, schema_: str, tables: typing.Tuple[str, ...]):
-                pass
-
-        class TableInsert(object):
-            def __init__(self, engine_: sa.engine.base.Engine, schema_: str, tables: typing.Tuple[str, ...]):
-                pass
-
-        class TableUpdate(object):
-            def __init__(self, engine_: sa.engine.base.Engine, schema_: str, tables: typing.Tuple[str, ...]):
-                pass
+            self.__setattr__(table, update_func)
