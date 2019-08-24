@@ -3,7 +3,7 @@ import pathlib
 
 # there should be a folder with the host file and the credentials path
 try:
-    config_folder = os.environ["DSDBMANAGER_CONFIG"]
+    config_folder = pathlib.Path(os.environ["DSDBMANAGER_CONFIG"])
 except KeyError as _:
     config_folder = pathlib.Path.home() / ".dsdbmanager"
 
