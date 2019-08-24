@@ -7,8 +7,7 @@ def main():
 
     :return:
     """
-
-    return "data science database connection manager"
+    pass
 
 
 @main.command()
