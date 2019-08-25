@@ -25,11 +25,11 @@ Use entry point command `dsdbmanager add-database` directly in a command shell t
 
 Adding databases directly in an interactive shell:
 
-![add database](/source/add_db.gif) 
+![add database](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/add_db.gif) 
 
 This will add the database directly to the `host.json` file automatically created at `import`.
 
-![host json](/source/host.png)
+![host json](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/host.png)
 
 ## Connecting
 
@@ -43,17 +43,17 @@ Once a database is added, it is easy to connect to it using one of the following
 <li>teradata</li>
 </ul>
 
-![mysql connect](/source/manualconnection.png)
+![mysql connect](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/manualconnection.png)
 
 #### Connecting With Shortcut
 In order to save encrypted credentials for reuse, the project comes with a shortcut for each flavor/dialect
 
-![shortcut](/source/using_shortcut.png)
+![shortcut](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/using_shortcut.png)
 
 This approach creates an object that has the name of each database as a method. The image above shows the database `dstest` as a method
 that can be called with two parameters.
 
-![connect](/source/first_time.png) 
+![connect](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/first_time.png) 
 
 User is prompted for a username and password the first time. A connection is attempted and when successful, the credentials are stored in a json file and look like this.
 
@@ -80,14 +80,14 @@ What happens when `connect_only = False`? The object created has not only an eng
 <li>Attribute 'u': provides a function that uses a pandas dataframe to update records in a table</li>
 </ol>
 
-![metadata](/source/metadata.png)
+![metadata](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/metadata.png)
 
-![read data](/source/read_table.png)
+![read data](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/read_table.png)
 
 #### Context Manager
 It is highly suggested to connect to the databases using a context manager approach in order to directly dispose of engines and discard properties.
 
-![context manager](/source/as_context_manager.png)
+![context manager](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/as_context_manager.png)
 
 In fact the context manager approach is way cleaner than the others
 
