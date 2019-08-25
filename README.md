@@ -27,7 +27,7 @@ Adding databases directly in an interactive shell:
 
 ![add database](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/add_db.gif) 
 
-This will add the database directly to the `host.json` file automatically created at `import`.
+This will add the database directly to the `host.json` file automatically created at first `import`.
 
 ![host json](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/host.png)
 
@@ -55,7 +55,7 @@ that can be called with two parameters.
 
 ![connect](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/first_time.png) 
 
-User is prompted for a username and password the first time. A connection is attempted and when successful, the credentials are stored in a json file and look like this.
+User is prompted for a username and password the first time. A connection is attempted and when successful, the credentials are stored in a json file and looks like this.
 
 ```json
 {
