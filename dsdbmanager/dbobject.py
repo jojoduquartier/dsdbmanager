@@ -297,6 +297,7 @@ class DsDbManager(object):
         # available databases
         self.available_databases = list(self.host_dict.get(flavor).keys())
 
+        # TODO: use schema provided by user if any. This will probably involve checking host dictionary
         for db_name in self.available_databases:
             self.__setattr__(
                 db_name,
