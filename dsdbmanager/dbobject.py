@@ -204,7 +204,7 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
 
 @toolz.curry
 def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
-                  connection_object: connection_object_type, connect_only: bool = False, schema: str = None):
+                  connection_object: connection_object_type, connect_only: bool, schema: str):
     """
     Try connecting to the database. Write credentials on success. Using a function only so that the connection
     is only attempted when function is called.
