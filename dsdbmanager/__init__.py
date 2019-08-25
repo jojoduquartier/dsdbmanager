@@ -1,4 +1,5 @@
 import json
+from .dbobject import DsDbManager
 from .configuring import ConfigFilesManager
 
 configurer = ConfigFilesManager()
@@ -28,6 +29,23 @@ if not configurer.key_location.exists():
     configurer.key_location.write_bytes(configurer.generate_key())
 
 # functions for users to use
-add_db = configurer.add_new_database_info
-remove_db = configurer.remove_database
-reset_cred = configurer.reset_credentials
+add_database = configurer.add_new_database_info
+remove_database = configurer.remove_database
+reset_credentials = configurer.reset_credentials
+
+
+# easy access for databases
+def oracle():
+    return DsDbManager('oracle')
+
+
+def teradata():
+    return DsDbManager('teradata')
+
+
+def mysql():
+    return DsDbManager('mysql')
+
+
+def mssql():
+    return DsDbManager('mssql')
