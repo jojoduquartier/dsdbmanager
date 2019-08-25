@@ -17,6 +17,10 @@ import cx_Oracle
 in the header of each script. There are many ways of dealing with these issues but this project tries to provide some example
 for the new data scientist. This project is not meant to be used in production.
 
+Consider the following database with a single empty table.
+
+![mysql workbench](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/workbench.png)
+
 ## Adding databases
 It is recommended to set an envionment variable `DSDBMANAGER_CONFIG` pointing to a folder where the configuration files can be stored.
 If the environment variable is not available, `pathlib.Path.home() / ".dsdbmanager"` is used by default.
