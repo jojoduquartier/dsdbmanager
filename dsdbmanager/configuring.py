@@ -52,7 +52,10 @@ class ConfigFilesManager(object):
         """
         username = click.prompt("Username", type=str)
         password = click.prompt("Password", hide_input=True, type=str)
-        return self.encrypt_decrypt(username, encrypt=True), self.encrypt_decrypt(password, encrypt=True)
+        return (
+            self.encrypt_decrypt(username.encode(), encrypt=True),
+            self.encrypt_decrypt(password.encode(), encrypt=True)
+        )
 
     def read_credentials(self, flavor: str, name: str):
         """
