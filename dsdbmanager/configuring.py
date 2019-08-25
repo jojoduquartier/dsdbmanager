@@ -30,12 +30,9 @@ class ConfigFilesManager(object):
     def encrypt_decrypt(self, string: typing.Union[str, bytes], encrypt: bool) -> typing.Union[str, bytes]:
         """
         Encrypt and/or decrypt password or username based on the key
-        Args:
-            string:
-            encrypt:
-
-        Returns: encoded string
-
+        :param string:
+        :param encrypt:
+        :return:
         """
         # get the key and create cipher
         key = self.key_location.read_bytes()
@@ -51,8 +48,7 @@ class ConfigFilesManager(object):
     def ask_credentials(self):
         """
         Output must be decrypted and decoded before connection to database
-        Returns:
-
+        :return:
         """
         username = click.prompt("Username", type=str)
         password = click.prompt("Password", hide_input=True, type=str)
@@ -61,12 +57,9 @@ class ConfigFilesManager(object):
     def read_credentials(self, flavor: str, name: str):
         """
         Output must be decrypted first then decoded
-        Args:
-            flavor:
-            name:
-
-        Returns:
-
+        :param flavor:
+        :param name:
+        :return:
         """
         if not self.credential_location.exists():
             return None
@@ -75,13 +68,13 @@ class ConfigFilesManager(object):
             with open(self.credential_location) as f:
                 credential_file = json.load(f)
         except OSError as _:
-            return None
+            return None, None
 
         if flavor not in credential_file:
-            return None
+            return None, None
 
         if name not in credential_file[flavor]:
-            return None
+            return None, None
 
         username = credential_file[flavor][name].get('username')
         password = credential_file[flavor][name].get('password')
@@ -91,15 +84,12 @@ class ConfigFilesManager(object):
     def write_credentials(self, flavor: str, name: str, username: bytes, password: bytes, credential_dict=None):
         """
         Writes encrypted credentials to file
-        Args:
-            flavor:
-            name:
-            username:
-            password:
-            credential_dict:
-
-        Returns:
-
+        :param flavor:
+        :param name:
+        :param username:
+        :param password:
+        :param credential_dict:
+        :return:
         """
         if not credential_dict:
             try:
@@ -133,6 +123,10 @@ class ConfigFilesManager(object):
         return None
 
     def add_new_database_info(self):
+        """
+        Add new database
+        :return:
+        """
         try:
             with open(self.host_location) as f:
                 host_file = json.load(f)
@@ -191,6 +185,10 @@ class ConfigFilesManager(object):
         return None
 
     def remove_database(self):
+        """
+        remove a database and it's credentials
+        :return:
+        """
         try:
             with open(self.host_location) as f:
                 host_file = json.load(f)
@@ -228,6 +226,12 @@ class ConfigFilesManager(object):
 
     # TODO - very similar to the method above. improve
     def remove_credential(self, flavor: str, name: str):
+        """
+        removes credentials only
+        :param flavor:
+        :param name:
+        :return:
+        """
         try:
             with open(self.credential_location) as f:
                 credential_file = json.load(f)
@@ -251,6 +255,10 @@ class ConfigFilesManager(object):
         return None
 
     def reset_credentials(self):
+        """
+        reset credentials without testing if they are correct
+        :return:
+        """
         try:
             with open(self.credential_location) as f:
                 credential_dict = json.load(f)

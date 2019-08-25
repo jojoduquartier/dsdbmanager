@@ -31,13 +31,10 @@ connection_object_type = typing.Union[
 def util_function(table_name: str, engine: sa.engine.base.Engine, schema: str) -> sa.Table:
     """
 
-    Args:
-        table_name:
-        engine:
-        schema:
-
-    Returns:
-
+    :param table_name:
+    :param engine:
+    :param schema:
+    :return:
     """
     try:
         return sa.Table(table_name, sa.MetaData(engine, schema=schema), autoload=True)
@@ -48,14 +45,11 @@ def util_function(table_name: str, engine: sa.engine.base.Engine, schema: str) -
 def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engine, schema: str) -> int:
     """
 
-    Args:
-        df:
-        table_name:
-        engine:
-        schema:
-
-    Returns:
-
+    :param df:
+    :param table_name:
+    :param engine:
+    :param schema:
+    :return:
     """
 
     # get the table
@@ -89,16 +83,13 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
                     engine: sa.engine.base.Engine, schema: str) -> int:
     """
 
-    Args:
-        df:
-        keys:
-        values:
-        table_name:
-        engine:
-        schema:
-
-    Returns:
-
+    :param df:
+    :param keys:
+    :param values:
+    :param table_name:
+    :param engine:
+    :param schema:
+    :return:
     """
 
     # get table

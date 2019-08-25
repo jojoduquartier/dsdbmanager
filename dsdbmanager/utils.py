@@ -23,12 +23,9 @@ inspect_type = typing.Dict[
 def d_frame(f: function_type_for_dframe, records: bool = False) -> typing.Callable[..., pd.DataFrame]:
     """
     Decorator that produces a pandas DataFrame from numpy array and columns
-    Args:
-        f:
-        records:
-
-    Returns:
-
+    :param f:
+    :param records:
+    :return:
     """
 
     @functools.wraps(f)
@@ -48,11 +45,8 @@ def d_frame(f: function_type_for_dframe, records: bool = False) -> typing.Callab
 def inspect_table(table: sa.Table) -> inspect_type:
     """
 
-    Args:
-        table:
-
-    Returns:
-
+    :param table:
+    :return:
     """
 
     if not isinstance(table, sa.Table):
@@ -61,11 +55,8 @@ def inspect_table(table: sa.Table) -> inspect_type:
     def str_type(typ: sa.types.TypeEngine) -> typing.Union[str, sa.types.TypeEngine]:
         """
 
-        Args:
-            typ:
-
-        Returns:
-
+        :param typ:
+        :return:
         """
 
         try:
@@ -76,11 +67,8 @@ def inspect_table(table: sa.Table) -> inspect_type:
     def python_type_(typ: sa.types.TypeEngine) -> typing.Union[type, None]:
         """
 
-        Args:
-            typ:
-
-        Returns:
-
+        :param typ:
+        :return:
         """
 
         try:
@@ -121,13 +109,10 @@ def inspect_table(table: sa.Table) -> inspect_type:
 def filter_maker(tbl: sa.Table, k: str, val: regular_column_content) -> sqlelements.BinaryExpression:
     """
 
-    Args:
-        tbl:
-        k:
-        val:
-
-    Returns:
-
+    :param tbl:
+    :param k:
+    :param val:
+    :return:
     """
 
     if not isinstance(tbl, sa.Table):
@@ -145,16 +130,13 @@ def complex_filter_maker(tbl: sa.Table, item: typing.Tuple[str, typing.Any],
                          filter_type: str) -> sqlelements.BinaryExpression:
     """
 
-    Args:
-        tbl:
-        item:
-        filter_type: one of ('bw', 'lt', 'le', 'gt', 'ge', 'like', 'not_like', 'not_in')
-
-    Returns:
-
+    :param tbl:
+    :param item:
+    :param filter_type: one of ('bw', 'lt', 'le', 'gt', 'ge', 'like', 'not_like', 'not_in')
+    :return:
     """
     raise NotImplementedError("Yet to be implemented")
-    
+
     if not isinstance(tbl, sa.Table):
         raise Exception("table argument is not a sqlAlchemy Table")
 
