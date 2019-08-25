@@ -246,7 +246,7 @@ class DbMiddleware(object):
     def __init__(self, engine, connect_only, schema):
         self.engine = engine
 
-        if connect_only:
+        if not connect_only:
             inspection = reflection.Inspector.from_engine(self.engine)
             views = inspection.get_view_names(schema=schema)
             tables = inspection.get_table_names(schema=schema)
