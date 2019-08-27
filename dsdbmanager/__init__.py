@@ -1,7 +1,8 @@
 import json
-from .dbobject import DsDbManager
+from .dbobject import DsDbManager, DbMiddleware
 from .configuring import ConfigFilesManager
 
+__version__ = '1.0.0'
 configurer = ConfigFilesManager()
 
 # first initialize empty files
@@ -49,3 +50,32 @@ def mysql():
 
 def mssql():
     return DsDbManager('mssql')
+
+
+def from_engine(engine):
+    """
+    Main objective is to use this to create DbMiddleware objects on sqlite engines for quick testing purposes
+
+    :param engine:
+    :return:
+
+    >>> import pandas as pd
+    >>> from sqlalchemy import create_engine
+
+    # create engine
+    >>> engine = create_engine('sqlite://')
+
+    # insert data
+    >>> df = pd.DataFrame({'a':[1,2,3], 'b':[1,2,3]})
+    >>> df.to_sql('test', engine, index=False)
+
+    # create a db object
+    >>> db = from_engine(engine)
+
+    >>> df1: pd.DataFrame = db.test()
+    >>> df1.equals(df)
+    True
+    >>>
+
+    """
+    return DbMiddleware(engine, False, None)

@@ -7,6 +7,7 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
+from re import match
 from os import path
 
 here = path.abspath(path.dirname(__file__))
@@ -20,6 +21,11 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     requirements = f.readlines()
     requirements = [package.strip() for package in requirements]
 
+# version
+with open(path.join(here, '__init__.py'), encoding='utf-8') as f:
+    pattern = r"__version__ = '([0-9]\.[0-9]\.[0-9])'"
+    version = match(pattern, f.read()).groups()[0]
+
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
@@ -32,7 +38,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='',  # Required
+    version=version,  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:

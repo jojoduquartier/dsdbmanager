@@ -3,6 +3,7 @@ import typing
 import toolz
 import inspect
 import functools
+import warnings
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
@@ -173,8 +174,11 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
         else:
             # check if all columns are in table
             not_in_table = set(columns) - set(tbl_cols)
+            if not_in_table == set(columns):
+                raise Exception(f"None of the columns [{', '.join(columns)}] are in table {table}")
+
             if len(not_in_table) > 0:
-                pass
+                warnings.warn(f"Columns [{''.join(not_in_table)}] are not in table {table}")
 
             tbl_cols = [el for el in columns if el in tbl_cols]
             query = sa.select([tbl.c[col] for col in tbl_cols])
@@ -244,21 +248,21 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
 
 class DbMiddleware(object):
     def __init__(self, engine, connect_only, schema):
-        self.engine = engine
+        self.sqlalchemy_engine = engine
 
         if not connect_only:
-            inspection = reflection.Inspector.from_engine(self.engine)
+            inspection = reflection.Inspector.from_engine(self.sqlalchemy_engine)
             views = inspection.get_view_names(schema=schema)
             tables = inspection.get_table_names(schema=schema)
 
             if not (tables + views):
                 pass
-            self.m = TableMeta(self.engine, schema, tables + views)
-            self.x = TableInsert(self.engine, schema, tables + views)
-            self.u = TableUpdate(self.engine, schema, tables + views)
+            self.m = TableMeta(self.sqlalchemy_engine, schema, tables + views)
+            self.x = TableInsert(self.sqlalchemy_engine, schema, tables + views)
+            self.u = TableUpdate(self.sqlalchemy_engine, schema, tables + views)
 
             for table in tables + views:
-                self.__setattr__(table, table_middleware(self.engine, table, schema=schema))
+                self.__setattr__(table, table_middleware(self.sqlalchemy_engine, table, schema=schema))
 
     def __getitem__(self, item):
         return self.__dict__[item]
@@ -267,7 +271,7 @@ class DbMiddleware(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.engine.dispose()
+        self.sqlalchemy_engine.dispose()
         properties = map(toolz.first, inspect.getmembers(self))
         methods_only = map(toolz.first, inspect.getmembers(self, inspect.ismethod))
         attributes = filter(lambda x: not x.startswith('__'), set(properties) - set(methods_only))
@@ -287,40 +291,40 @@ class DsDbManager(object):
         if flavor.lower() not in FLAVORS_FOR_CONFIG:
             raise Exception(f"Invalid flavor: expected one of {', '.join(FLAVORS_FOR_CONFIG)}, got {flavor}")
 
-        self.flavor = flavor
-        self.config_file_manager = ConfigFilesManager()
-        self.host_dict = self.config_file_manager.get_hosts()
+        self._flavor = flavor
+        self._config_file_manager = ConfigFilesManager()
+        self._host_dict = self._config_file_manager.get_hosts()
 
-        if not self.host_dict:
+        if not self._host_dict:
             raise Exception("Host file is empty. Consider adding some databases")
 
         # available databases
-        self.available_databases = list(self.host_dict.get(flavor).keys())
+        self.available_databases = list(self._host_dict.get(flavor).keys())
 
         # TODO: use schema provided by user if any. This will probably involve checking host dictionary
         for db_name in self.available_databases:
             self.__setattr__(
                 db_name,
                 db_middleware(
-                    self.config_file_manager,
-                    self.flavor,
+                    self._config_file_manager,
+                    self._flavor,
                     db_name,
                     self.connection_object_creator(db_name)
                 )
             )
 
     def connection_object_creator(self, db_name: str):
-        if self.flavor.lower() == 'oracle':
-            return Oracle(db_name, self.host_dict)
+        if self._flavor.lower() == 'oracle':
+            return Oracle(db_name, self._host_dict)
 
-        if self.flavor.lower() == 'teradata':
-            return Teradata(db_name, self.host_dict)
+        if self._flavor.lower() == 'teradata':
+            return Teradata(db_name, self._host_dict)
 
-        if self.flavor.lower() == 'mssql':
-            return Mssql(db_name, self.host_dict)
+        if self._flavor.lower() == 'mssql':
+            return Mssql(db_name, self._host_dict)
 
-        if self.flavor.lower() == 'mysql':
-            return Mysql(db_name, self.host_dict)
+        if self._flavor.lower() == 'mysql':
+            return Mysql(db_name, self._host_dict)
 
     def __getitem__(self, item):
         return self.__dict__[item]
