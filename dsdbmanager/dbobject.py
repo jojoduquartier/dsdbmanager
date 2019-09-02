@@ -58,7 +58,7 @@ def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engin
     tbl = util_function(table_name, engine, schema)
 
     # change all nan to None
-    groups = toolz.partition_all(CHUNK_SIZE, df.where(pd.isnull(df), None).to_dict(orient='records'))
+    groups = toolz.partition_all(CHUNK_SIZE, df.where(pd.notnull(df), None).to_dict(orient='records'))
 
     # insert
     count, last_successful_insert = 0, None
@@ -100,7 +100,7 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
     # change nan to None, make sure columns are modified so that we can easily bindparam
     df_ = df.copy()
     df_.columns = [f"{el.lower()}_updt" for el in df_.columns]
-    groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.isnull(df_), None).to_dict(orient='records'))
+    groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.notnull(df_), None).to_dict(orient='records'))
 
     # create where clause, and update statement
     update_statement: dml.Update
@@ -301,21 +301,21 @@ class DsDbManager(object):
             raise Exception("Host file is empty. Consider adding some databases")
 
         # available databases
-        self.available_databases = list(self._host_dict.get(flavor).keys())
+        self._available_databases = list(self._host_dict.get(flavor).keys())
 
         # TODO: use schema provided by user if any. This will probably involve checking host dictionary
-        for db_name in self.available_databases:
+        for db_name in self._available_databases:
             self.__setattr__(
                 db_name,
                 db_middleware(
                     self._config_file_manager,
                     self._flavor,
                     db_name,
-                    self.connection_object_creator(db_name)
+                    self._connection_object_creator(db_name)
                 )
             )
 
-    def connection_object_creator(self, db_name: str):
+    def _connection_object_creator(self, db_name: str):
         if self._flavor.lower() == 'oracle':
             return Oracle(db_name, self._host_dict)
 
