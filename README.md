@@ -22,7 +22,7 @@ some frequent database connection activities.
 
 * The examples below are based on a locally hosted [MySql](https://www.mysql.com/products/workbench/) database
 
-Consider the following database *dstest* with tables **category** and **user**. The database host, schema and/or port can be
+Consider the following database **dstest** with tables **category** and **user**. The database host, schema and/or port can be
 stored in a json file that the package uses to quickly create sqlalchemy engines. 
 
 ![mysql workbench](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/workbench.png)
