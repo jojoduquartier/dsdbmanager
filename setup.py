@@ -7,7 +7,7 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from re import match
+from re import search
 from os import path
 
 here = path.abspath(path.dirname(__file__))
@@ -22,9 +22,12 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     requirements = [package.strip() for package in requirements]
 
 # version
-with open(path.join(here, '__init__.py'), encoding='utf-8') as f:
+with open(path.join(here, 'dsdbmanager', '__init__.py'), encoding='utf-8') as f:
     pattern = r"__version__ = '([0-9]\.[0-9]\.[0-9])'"
-    version = match(pattern, f.read()).groups()[0]
+    try:
+        version = search(pattern, f.read()).group(1)
+    except AttributeError as _:
+        version = '0.0.0'
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.

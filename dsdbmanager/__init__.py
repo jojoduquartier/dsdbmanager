@@ -10,7 +10,7 @@ configurer = ConfigFilesManager()
 if not configurer.host_location.exists():
     try:
         configurer.host_location.touch(exist_ok=True)
-        with open(configurer.host_location, "w") as f:
+        with configurer.host_location.open('w') as f:
             json.dump({}, f)
     except OSError as e:
         raise Exception("Could not write at host file location", e)
@@ -19,7 +19,7 @@ if not configurer.host_location.exists():
 if not configurer.credential_location.exists():
     configurer.credential_location.touch(exist_ok=True)
     try:
-        with open(configurer.credential_location, 'w') as f:
+        with configurer.credential_location.open('w') as f:
             json.dump({}, f)
     except OSError as e:
         raise Exception("Could not write at credential file location", e)

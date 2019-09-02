@@ -1,8 +1,10 @@
 # dsdbmanager
+Data Science DataBase Manager
+
 Do you love SqlAlchemy? Do you usually have to connect to the same databases all the time for some quick data processing and/or exploration?
 
 <ul>
-<li>You might have passwords hard coded in scripts and have to make sure no one sees the code</li>
+<li>You might have database address and/or credentials hardcoded in a script</li>
 <li>You might be using environment variables to store credentials or host/ports etc</li>
 </ul> 
 

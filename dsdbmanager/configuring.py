@@ -19,7 +19,7 @@ class ConfigFilesManager(object):
 
     def get_hosts(self):
         try:
-            with open(self.host_location, 'r') as f:
+            with self.host_location.open('r') as f:
                 hosts = json.load(f)
 
         except Exception as e:
@@ -68,7 +68,7 @@ class ConfigFilesManager(object):
             return None
 
         try:
-            with open(self.credential_location) as f:
+            with self.credential_location.open('r') as f:
                 credential_file = json.load(f)
         except OSError as _:
             return None, None
@@ -96,7 +96,7 @@ class ConfigFilesManager(object):
         """
         if not credential_dict:
             try:
-                with open(self.credential_location) as f:
+                with self.credential_location.open('r') as f:
                     credential_dict = json.load(f)
             except OSError as e:
                 raise e
@@ -118,7 +118,7 @@ class ConfigFilesManager(object):
             }
 
         try:
-            with open(self.credential_location, 'w') as f:
+            with self.credential_location.open('w') as f:
                 json.dump(credential_dict, f)
         except OSError as e:
             raise e
@@ -131,7 +131,7 @@ class ConfigFilesManager(object):
         :return:
         """
         try:
-            with open(self.host_location) as f:
+            with self.host_location.open('r') as f:
                 host_file = json.load(f)
         except OSError as e:
             raise e
@@ -180,7 +180,7 @@ class ConfigFilesManager(object):
         host_file[flavor][name] = host_dict
 
         try:
-            with open(self.host_location, 'w') as f:
+            with self.host_location.open('w') as f:
                 json.dump(host_file, f)
         except OSError as er:
             raise er
@@ -193,7 +193,7 @@ class ConfigFilesManager(object):
         :return:
         """
         try:
-            with open(self.host_location) as f:
+            with self.host_location.open('r') as f:
                 host_file = json.load(f)
         except OSError as e:
             raise e
@@ -218,7 +218,7 @@ class ConfigFilesManager(object):
         _ = host_file[flavor].pop(name)
 
         try:
-            with open(self.host_location, 'w') as f:
+            with self.host_location.open('w') as f:
                 json.dump(host_file, f)
         except OSError as e:
             raise e
@@ -236,7 +236,7 @@ class ConfigFilesManager(object):
         :return:
         """
         try:
-            with open(self.credential_location) as f:
+            with self.credential_location.open('r') as f:
                 credential_file = json.load(f)
         except OSError as e:
             raise e
@@ -250,7 +250,7 @@ class ConfigFilesManager(object):
         _ = credential_file[flavor].pop(name)
 
         try:
-            with open(self.credential_location, 'w') as f:
+            with self.credential_location.open('w') as f:
                 json.dump(credential_file, f)
         except OSError as e:
             raise e
@@ -263,7 +263,7 @@ class ConfigFilesManager(object):
         :return:
         """
         try:
-            with open(self.credential_location) as f:
+            with self.credential_location.open('r') as f:
                 credential_dict = json.load(f)
         except OSError as e:
             raise e

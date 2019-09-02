@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.exc as exc
+import sqlalchemy.sql.dml as dml
 
 from .mssql import Mssql
 from .mysql import Mysql
@@ -102,6 +103,7 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
     groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.isnull(df_), None).to_dict(orient='records'))
 
     # create where clause, and update statement
+    update_statement: dml.Update
     if isinstance(keys, tuple):
         if not isinstance(values, tuple):
             raise Exception("keys and values must either be both tuples or both dicts")
@@ -257,9 +259,9 @@ class DbMiddleware(object):
 
             if not (tables + views):
                 pass
-            self.m = TableMeta(self.sqlalchemy_engine, schema, tables + views)
-            self.x = TableInsert(self.sqlalchemy_engine, schema, tables + views)
-            self.u = TableUpdate(self.sqlalchemy_engine, schema, tables + views)
+            self._metadata = TableMeta(self.sqlalchemy_engine, schema, tables + views)
+            self._insert = TableInsert(self.sqlalchemy_engine, schema, tables + views)
+            self._update = TableUpdate(self.sqlalchemy_engine, schema, tables + views)
 
             for table in tables + views:
                 self.__setattr__(table, table_middleware(self.sqlalchemy_engine, table, schema=schema))

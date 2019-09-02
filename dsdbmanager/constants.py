@@ -24,7 +24,7 @@ except KeyError:
     KEY_PATH = config_folder / ".configkey"
 
 # database flavors
-FLAVORS_FOR_CONFIG = ('oracle', 'mysql', 'mssql', 'teradata')
+FLAVORS_FOR_CONFIG = ('oracle', 'mysql', 'mssql', 'teradata',)
 
 CACHE_SIZE = 64
 CHUNK_SIZE = 30000
