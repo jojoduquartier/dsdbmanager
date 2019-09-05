@@ -10,7 +10,7 @@ class Mysql:
         self.db_name = db_name
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
-        if not self.host_dict:
+        if not self.host_dict or 'mysql' not in self.host_dict:
             raise Exception("No databases available")
 
         self.host_dict = self.host_dict.get('mysql').get(self.db_name, {})

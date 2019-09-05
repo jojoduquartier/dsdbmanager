@@ -9,7 +9,7 @@ class Teradata:
     def __init__(self, db_name: str, host_dict: host_type = None):
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
-        if not self.host_dict:
+        if not self.host_dict or 'teradata' not in self.host_dict:
             raise Exception("No databases available")
 
         self.host_dict = self.host_dict.get('teradata').get(db_name, {})

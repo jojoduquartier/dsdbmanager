@@ -210,7 +210,8 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
 
 @toolz.curry
 def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
-                  connection_object: connection_object_type, connect_only: bool, schema: str):
+                  connection_object: connection_object_type, config_schema: str, connect_only: bool,
+                  schema: str = None):
     """
     Try connecting to the database. Write credentials on success. Using a function only so that the connection
     is only attempted when function is called.
@@ -218,6 +219,7 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     :param flavor:
     :param db_name:
     :param connection_object:
+    :param config_schema:
     :param connect_only:
     :param schema:
     :return:
@@ -244,12 +246,17 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     if write_credentials:
         config_manager.write_credentials(flavor, db_name, username, password)
 
+    if not schema:
+        schema = config_schema
+
+    # technically when connect_only is True, schema should not matter
+
     middleware = DbMiddleware(engine, connect_only, schema)
     return middleware
 
 
 class DbMiddleware(object):
-    def __init__(self, engine, connect_only, schema):
+    def __init__(self, engine, connect_only, schema=None):
         self.sqlalchemy_engine = engine
 
         if not connect_only:
@@ -300,18 +307,26 @@ class DsDbManager(object):
         if not self._host_dict:
             raise Exception("Host file is empty. Consider adding some databases")
 
+        if flavor not in self._host_dict:
+            raise Exception(f"No databases for {flavor}")
+
         # available databases
         self._available_databases = list(self._host_dict.get(flavor).keys())
+        self._schemas_per_databases = [
+            self._host_dict.get(flavor).get(database).get('schema', None)
+            for database in self._available_databases
+        ]
 
         # TODO: use schema provided by user if any. This will probably involve checking host dictionary
-        for db_name in self._available_databases:
+        for db_name, config_schema in zip(self._available_databases, self._schemas_per_databases):
             self.__setattr__(
                 db_name,
                 db_middleware(
                     self._config_file_manager,
                     self._flavor,
                     db_name,
-                    self._connection_object_creator(db_name)
+                    self._connection_object_creator(db_name),
+                    config_schema
                 )
             )
 

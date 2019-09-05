@@ -10,7 +10,7 @@ class Oracle:
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
         # if the host file is empty raise an exception
-        if not self.host_dict:
+        if not self.host_dict or 'oracle' not in self.host_dict:
             raise Exception("No databases available")
 
         self.host_dict = self.host_dict.get('oracle').get(db_name, {})
