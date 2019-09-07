@@ -102,6 +102,9 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
     df_.columns = [f"{el.lower()}_updt" for el in df_.columns]
     groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.notnull(df_), None).to_dict(orient='records'))
 
+    if not isinstance(keys, tuple) and not isinstance(keys, dict):
+        raise Exception("keys and values must either be both tuples or both dicts")
+
     # create where clause, and update statement
     update_statement: dml.Update
     if isinstance(keys, tuple):

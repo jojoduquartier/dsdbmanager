@@ -24,7 +24,7 @@ class Oracle:
 
         :param user:
         :param pwd:
-        :param kwargs: for compatibility
+        :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
         :return:
         """
         try:
@@ -41,4 +41,4 @@ class Oracle:
         else:
             dsn = makedsn(host, port, sid=sid)
 
-        return sa.create_engine(f'oracle://{user}:{pwd}@{dsn}')
+        return sa.create_engine(f'oracle://{user}:{pwd}@{dsn}', **kwargs)

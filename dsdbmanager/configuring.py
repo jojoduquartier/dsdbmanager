@@ -8,10 +8,15 @@ from .constants import HOST_PATH, CREDENTIAL_PATH, KEY_PATH, FLAVORS_FOR_CONFIG
 
 
 class ConfigFilesManager(object):
-    def __init__(self):
-        self.host_location: pathlib.Path = HOST_PATH
-        self.credential_location: pathlib.Path = CREDENTIAL_PATH
-        self.key_location: pathlib.Path = KEY_PATH
+    def __init__(
+            self,
+            host_path: pathlib.Path = HOST_PATH,
+            credential_path: pathlib.Path = CREDENTIAL_PATH,
+            key_path: pathlib.Path = KEY_PATH
+    ):
+        self.host_location: pathlib.Path = host_path
+        self.credential_location: pathlib.Path = credential_path
+        self.key_location: pathlib.Path = key_path
 
     @classmethod
     def generate_key(cls):
@@ -22,7 +27,7 @@ class ConfigFilesManager(object):
             with self.host_location.open('r') as f:
                 hosts = json.load(f)
 
-        except Exception as e:
+        except OSError as _:
             hosts = {}
 
         return hosts

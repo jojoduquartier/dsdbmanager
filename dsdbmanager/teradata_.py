@@ -22,7 +22,7 @@ class Teradata:
 
         :param user:
         :param pwd:
-        :param kwargs:
+        :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
         :return:
         """
         try:
@@ -32,4 +32,4 @@ class Teradata:
 
         host = self.host_dict.get('host')
 
-        return sa.create_engine(f'teradata://{user}:{pwd}@{host}')
+        return sa.create_engine(f'teradata://{user}:{pwd}@{host}', **kwargs)

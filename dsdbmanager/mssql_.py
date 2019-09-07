@@ -23,7 +23,7 @@ class Mssql:
 
         :param user:
         :param pwd:
-        :param kwargs:
+        :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
         :return:
         """
         try:
@@ -34,7 +34,7 @@ class Mssql:
         host = self.host_dict.get('host')
 
         if 'port' not in self.host_dict:
-            return sa.create_engine(f'mssql+pymssql://{user}:{pwd}@{host}/{self.db_name}')
+            return sa.create_engine(f'mssql+pymssql://{user}:{pwd}@{host}/{self.db_name}', **kwargs)
 
         port = self.host_dict.get('port')
-        return sa.create_engine(f'mssql+pymssql://{user}:{pwd}@{host}{port}/{self.db_name}')
+        return sa.create_engine(f'mssql+pymssql://{user}:{pwd}@{host}{port}/{self.db_name}', **kwargs)

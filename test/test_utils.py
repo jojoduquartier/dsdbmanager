@@ -98,6 +98,10 @@ class TesUtil(unittest.TestCase):
         pass
 
     def test_dframe(self):
+        """
+        check the output and shape of dataframes
+        :return:
+        """
         self.assertIsInstance(self.array_and_columns_to_df(), pd.DataFrame)
         self.assertEqual(self.array_and_columns_to_df().shape, (10, 2))
 
@@ -105,6 +109,10 @@ class TesUtil(unittest.TestCase):
         self.assertEqual(self.records_to_df().shape, (2, 2))
 
     def test_inspect_table(self):
+        """
+        check that inspect_table returns the same dictionary as what we expected
+        :return:
+        """
         inspection = inspect_table(self.students_table)
 
         self.assertEqual(set(inspection.keys()), set(self.table_inspect.keys()))
@@ -126,6 +134,10 @@ class TesUtil(unittest.TestCase):
         # Todo: check exception
 
     def test_filter_maker(self):
+        """
+        Make syre the filters are working
+        :return:
+        """
         self.assertIsInstance(
             filter_maker(self.students_table, 'age', 10),
             sqlelements.BinaryExpression
