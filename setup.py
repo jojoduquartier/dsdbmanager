@@ -30,6 +30,7 @@ setup(
     version=version,
     description='Manage your data science databases',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/jojoduquartier/dsdbmanager',
     author='jojoduquartier',
     author_email='',  # Optional
@@ -43,7 +44,7 @@ setup(
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Topic :: Data Science :: Database Connections',
+        'Topic :: Database :: Database Engines/Servers',
 
         # Pick your license as you wish
         'License :: OSI Approved :: MIT License',
@@ -52,7 +53,8 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         # These classifiers are *not* checked by 'pip install'. See instead
         # 'python_requires' below.
-        'Programming Language :: Python :: 3.6+',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     keywords='sqlalchemy data-science database-connections pandas',  # Optional
