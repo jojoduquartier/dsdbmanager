@@ -180,10 +180,10 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
             # check if all columns are in table
             not_in_table = set(columns) - set(tbl_cols)
             if not_in_table == set(columns):
-                raise Exception(f"None of the columns [{', '.join(columns)}] are in table {table}")
+                raise Exception(f"None of the columns [{', '.join(sorted(columns))}] are in table {table}")
 
             if len(not_in_table) > 0:
-                warnings.warn(f"Columns [{''.join(not_in_table)}] are not in table {table}")
+                warnings.warn(f"Columns [{', '.join(sorted(not_in_table))}] are not in table {table}")
 
             tbl_cols = [el for el in columns if el in tbl_cols]
             query = sa.select([tbl.c[col] for col in tbl_cols])

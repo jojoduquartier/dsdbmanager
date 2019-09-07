@@ -7,7 +7,6 @@ from dsdbmanager.dbobject import (
     insert_into_table,
     update_on_table,
     table_middleware,
-    db_middleware,
     DbMiddleware,
     TableMeta,
     TableInsert,
@@ -134,7 +133,147 @@ class TestDbObject(unittest.TestCase):
                 self.assertIn(column, read_df.columns)
 
     def test_update_on_table(self):
-        pass
+        """
+
+        :return:
+        """
+
+        # records to insert
+        country = [
+            {
+                'country': 'U.S.A',
+                'continent': 'North America'
+            },
+            {
+                'country': 'Benin',
+                'continent': 'Africa'
+            },
+            {
+                'country': 'Japan',
+                'continent': 'East Asia'
+            }
+        ]
+
+        # execute insert
+        insert = self.engine.execute(
+            self.country_table.insert(),
+            country
+        )
+        insert.close()
+
+        # update using tuples as keys
+        us_update = pd.DataFrame(
+            {
+                'country': ['U.S.A'],
+                'continent': ['America']
+            }
+        )
+        updated = update_on_table(
+            df=us_update,
+            keys=('country',),
+            values=('continent',),
+            table_name=self.country_table.name,
+            engine=self.engine,
+            schema=None
+        )
+        us_current_value = self.engine.execute(
+            sa.select([self.country_table.c['continent']]).where(
+                self.country_table.c['country'] == 'U.S.A'
+            )
+        ).fetchall()
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(updated, len(us_current_value))
+        self.assertEqual(us_current_value[0][0], us_update.loc[0, 'continent'])
+
+        # update using dictionary as keys
+        japan_update = pd.DataFrame(
+            {
+                'the country': ['Japan'],
+                'the continent': ['Asia']
+            }
+        )
+        updated = update_on_table(
+            df=japan_update,
+            keys={'country': 'the country'},
+            values={'continent': 'the continent'},
+            table_name=self.country_table.name,
+            engine=self.engine,
+            schema=None
+        )
+        japan_current_value = self.engine.execute(
+            sa.select([self.country_table.c['continent']]).where(
+                self.country_table.c['country'] == 'Japan'
+            )
+        ).fetchall()
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(updated, len(japan_current_value))
+        self.assertEqual(japan_current_value[0][0], japan_update.loc[0, 'the continent'])
+
+        # errors on providing the wrong type of arguments for key etc
+
+    def test_table_middleware(self):
+        """
+
+        :return:
+        """
+        read_from_currency_table = table_middleware(
+            engine=self.engine,
+            table=self.currency_table.name
+        )
+        currencies = [
+            {
+                'denomination': 'US Dollar',
+                'abbreviation': 'USD',
+                'countries': 'U.S.A'
+            },
+            {
+                'denomination': 'Euro',
+                'abbreviation': 'EUR',
+                'countries': 'A bunch'
+            }
+        ]
+
+        insert = self.engine.execute(
+            self.currency_table.insert(),
+            currencies
+        )
+        insert.close()
+
+        self.assertEqual(read_from_currency_table().shape, (len(currencies), 3))
+        self.assertEqual(read_from_currency_table(rows=1).shape, (1, 3))
+        self.assertEqual(read_from_currency_table(rows=1, columns=('abbreviation', 'countries')).shape, (1, 2))
+
+        with self.assertWarnsRegex(UserWarning, r"Columns \[made_up, not there\] are not in table currency"):
+            read_with_warning = read_from_currency_table(columns=('abbreviation', 'countries', 'not there', 'made_up'))
+            self.assertEqual(read_with_warning.shape, (len(currencies), 2))
+
+        # TODO use self.assertRaisesRegex() here
+
+    def test_dbmiddleware(self):
+        """
+
+        :return:
+        """
+
+        with DbMiddleware(self.engine, connect_only=False, schema=None) as dbm:
+            for attr in (
+                    self.currency_table.name,
+                    self.country_table.name,
+                    'sqlalchemy_engine',
+                    '_metadata',
+                    '_insert',
+                    '_update'
+            ):
+                with self.subTest(attribute=attr):
+                    self.assertTrue(hasattr(dbm, attr))
+
+            self.assertIsInstance(dbm._metadata, TableMeta)
+            self.assertIsInstance(dbm._insert, TableInsert)
+            self.assertIsInstance(dbm._update, TableUpdate)
+
+    # TODO - test TableMeta, TableInsert, TableUpdate: check for keyerror etc
 
 
 if __name__ == '__main__':
