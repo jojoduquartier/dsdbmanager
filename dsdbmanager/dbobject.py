@@ -10,10 +10,10 @@ import sqlalchemy as sa
 import sqlalchemy.exc as exc
 import sqlalchemy.sql.dml as dml
 
-from .mssql import Mssql
-from .mysql import Mysql
-from .oracle import Oracle
-from .teradata import Teradata
+from .mssql_ import Mssql
+from .mysql_ import Mysql
+from .oracle_ import Oracle
+from .teradata_ import Teradata
 from sqlalchemy.engine import reflection
 from .configuring import ConfigFilesManager
 from .utils import d_frame, inspect_table, filter_maker

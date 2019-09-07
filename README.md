@@ -48,10 +48,10 @@ Once a database is added, it is easy to connect to it using one of the following
 to establish a connection. This approach means that the user only needs to provide the username and password to create the engines.
     
 <ul>
-<li>oracle</li>
-<li>mssql</li>
-<li>mysql</li>
-<li>teradata</li>
+<li>oracle_</li>
+<li>mssql_</li>
+<li>mysql_</li>
+<li>teradata_</li>
 </ul>
 
 ![mysql connect](https://github.com/jojoduquartier/dsdbmanager/blob/master/source/imgs/manualconnection.png)
@@ -119,7 +119,7 @@ The context manager approach is way cleaner anyways.
 ```python
 from dsdbmanager import mysql
 
-with mysql().dstest(connect_only=True, schema='None') as dbobject:
+with mysql().dstest(connect_only=True, schema=None) as dbobject:
     # anything with the engine goes here
     pass
 ```
