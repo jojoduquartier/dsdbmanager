@@ -22,8 +22,8 @@ class Oracle:
     def create_engine(self, user: str = None, pwd: str = None, **kwargs):
         """
 
-        :param user:
-        :param pwd:
+        :param user: username
+        :param pwd: password
         :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
         :return:
         """

@@ -35,13 +35,17 @@ class ConfigFilesManager(object):
     def encrypt_decrypt(self, string: typing.Union[str, bytes], encrypt: bool) -> typing.Union[str, bytes]:
         """
         Encrypt and/or decrypt password or username based on the key
-        :param string:
-        :param encrypt:
-        :return:
+        :param string: username or password
+        :param encrypt: False to decrypt an encrypted credential, True to encrypt user provided credential
+        :return: encrypted or decrypted byte string
         """
         # get the key and create cipher
         key = self.key_location.read_bytes()
         fernet = Fernet(key)
+
+        # strings should be encoded
+        if isinstance(string, str):
+            string = string.encode()
 
         if encrypt:
             return fernet.encrypt(string)
@@ -53,7 +57,7 @@ class ConfigFilesManager(object):
     def ask_credentials(self):
         """
         Output must be decrypted and decoded before connection to database
-        :return:
+        :return: tuple of encrypted byte string: (username, password)
         """
         username = click.prompt("Username", type=str)
         password = click.prompt("Password", hide_input=True, type=str)
@@ -65,9 +69,9 @@ class ConfigFilesManager(object):
     def read_credentials(self, flavor: str, name: str):
         """
         Output must be decrypted first then decoded
-        :param flavor:
-        :param name:
-        :return:
+        :param flavor: one of the sql flavor/dialects used. oracle, mysql, etc.
+        :param name: the name of a database available for one of the flavors
+        :return: tuple of byte strings (username, password)
         """
         if not self.credential_location.exists():
             return None
@@ -92,11 +96,11 @@ class ConfigFilesManager(object):
     def write_credentials(self, flavor: str, name: str, username: bytes, password: bytes, credential_dict=None):
         """
         Writes encrypted credentials to file
-        :param flavor:
-        :param name:
-        :param username:
-        :param password:
-        :param credential_dict:
+        :param flavor: one of the sql flavor/dialects used. oracle, mysql, etc.
+        :param name: the name of a database available for one of the flavors
+        :param username: username encrypted by key
+        :param password: password encrypted by key
+        :param credential_dict: optional dictionary with database credentials
         :return:
         """
         if not credential_dict:
@@ -133,7 +137,7 @@ class ConfigFilesManager(object):
     def add_new_database_info(self):
         """
         Add new database
-        :return:
+        :return: None
         """
         try:
             with self.host_location.open('r') as f:
@@ -195,7 +199,7 @@ class ConfigFilesManager(object):
     def remove_database(self):
         """
         remove a database and it's credentials
-        :return:
+        :return: None
         """
         try:
             with self.host_location.open('r') as f:
@@ -236,8 +240,8 @@ class ConfigFilesManager(object):
     def remove_credential(self, flavor: str, name: str):
         """
         removes credentials only
-        :param flavor:
-        :param name:
+        :param flavor: one of the sql flavor/dialects used. oracle, mysql, etc.
+        :param name: the name of a database available for one of the flavors
         :return:
         """
         try:
@@ -265,7 +269,7 @@ class ConfigFilesManager(object):
     def reset_credentials(self):
         """
         reset credentials without testing if they are correct
-        :return:
+        :return: None
         """
         try:
             with self.credential_location.open('r') as f:

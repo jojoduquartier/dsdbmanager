@@ -33,10 +33,10 @@ connection_object_type = typing.Union[
 def util_function(table_name: str, engine: sa.engine.base.Engine, schema: str) -> sa.Table:
     """
 
-    :param table_name:
-    :param engine:
-    :param schema:
-    :return:
+    :param table_name: a table name. It must be a table in the schema of the engine
+    :param engine: the sqlalchemy engine for the database
+    :param schema: a schema of interest - None if default schema of database is ok
+    :return: the sqlalchemy Table type for the table name provided
     """
     try:
         return sa.Table(table_name, sa.MetaData(engine, schema=schema), autoload=True)
@@ -47,11 +47,11 @@ def util_function(table_name: str, engine: sa.engine.base.Engine, schema: str) -
 def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engine, schema: str) -> int:
     """
 
-    :param df:
-    :param table_name:
-    :param engine:
-    :param schema:
-    :return:
+    :param df: a dataframe with same column names as those in the database table
+    :param table_name: a table name as in util_function
+    :param engine: the sqlalchemy engine for the database
+    :param schema: a schema of interest - None if default schema of database is ok
+    :return: the number of records inserted
     """
 
     # get the table
@@ -85,13 +85,13 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
                     engine: sa.engine.base.Engine, schema: str) -> int:
     """
 
-    :param df:
-    :param keys:
-    :param values:
-    :param table_name:
-    :param engine:
-    :param schema:
-    :return:
+    :param df: a dataframe with data tha needs to be updated. Must have columns to be used as key and some for values
+    :param keys: the set of columns to use as key, i.e. update when matched
+    :param values: the set of columns to update, i.e. set when matched
+    :param table_name: a table name as in util_function
+    :param engine: the sqlalchemy engine for the database
+    :param schema: a schema of interest - None if default schema of database is ok
+    :return: the number of records updated
     """
 
     # get table
@@ -149,10 +149,10 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
     """
     This does not directly look for the tables; it simply gives a function that can be used to specify
     number of rows and columns etc.
-    :param engine:
-    :param table:
-    :param schema:
-    :return:
+    :param engine: the sqlalchemy engine for the database
+    :param table: a table name as in util_function
+    :param schema: a schema of interest - None if default schema of database is ok
+    :return: a function that when called, pulls data from the database table specified with 'table' arg
     """
 
     @d_frame
@@ -164,9 +164,9 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
     ) -> typing.Tuple[np.ndarray, typing.Tuple[str, ...]]:
         """
 
-        :param rows:
-        :param columns:
-        :param kwargs:
+        :param rows: number of rows of data to pull
+        :param columns: set of columns to pull
+        :param kwargs: column to filter
         :return:
         """
 
@@ -218,13 +218,13 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     """
     Try connecting to the database. Write credentials on success. Using a function only so that the connection
     is only attempted when function is called.
-    :param config_manager:
-    :param flavor:
-    :param db_name:
-    :param connection_object:
-    :param config_schema:
-    :param connect_only:
-    :param schema:
+    :param config_manager: a configuration manager to deal with host files etc
+    :param flavor: the sql flavor/dialect where the database lies
+    :param db_name: database name provided when adding database
+    :param connection_object: one of the connectors from the likes of myql_.py to create engine
+    :param config_schema: the schema provided when adding database
+    :param connect_only: True if all we want is connect and not inspect for tables or views
+    :param schema: if user wants to specify a different schema than the one supplied when adding database
     :return:
     """
 

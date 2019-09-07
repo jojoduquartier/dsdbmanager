@@ -23,8 +23,8 @@ inspect_type = typing.Dict[
 def d_frame(f: function_type_for_dframe, records: bool = False) -> typing.Callable[..., pd.DataFrame]:
     """
     Decorator that produces a pandas DataFrame from numpy array and columns
-    :param f:
-    :param records:
+    :param f: a function that returns either a tuple of numpy arrau and column names or a tuple of records (dictionaries)
+    :param records: True if the function supplied returns tuples of records, False if ndarray and columns
     :return:
     """
 
@@ -45,8 +45,8 @@ def d_frame(f: function_type_for_dframe, records: bool = False) -> typing.Callab
 def inspect_table(table: sa.Table) -> inspect_type:
     """
 
-    :param table:
-    :return:
+    :param table: a sqlalchemy Table object
+    :return: a dictionary with some metdata on the table
     """
 
     if not isinstance(table, sa.Table):
@@ -109,9 +109,9 @@ def inspect_table(table: sa.Table) -> inspect_type:
 def filter_maker(tbl: sa.Table, k: str, val: regular_column_content) -> sqlelements.BinaryExpression:
     """
 
-    :param tbl:
-    :param k:
-    :param val:
+    :param tbl: a sqlalchemy Table object
+    :param k: a column name in that table object
+    :param val: a value we want that column to be. Single value for k==val and a tuple means k.in_(val)
     :return:
     """
 
