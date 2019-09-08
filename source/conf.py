@@ -18,8 +18,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'dsdbmanager'
-copyright = '2019, Josiah Hounyo'
-author = 'Josiah Hounyo'
+copyright = '2019, jojoduquartier'
+author = 'jojoduquartier'
 
 
 # -- General configuration ---------------------------------------------------

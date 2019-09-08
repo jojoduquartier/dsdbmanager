@@ -14,7 +14,7 @@ Setup
 *******
 
 First, make sure to have :code:`DSDBMANAGER_CONFIG` set as an environment variable pointing to a secure folder. This is where
-the database information will be stored. If the environment is not available, a default is directly set the first time
+the database information will be stored. If the environment variable is not available, a default is directly set the first time
 the package is imported. That default corresponds to :code:`pathlib.Path.home() / ".dsdbmanager"`.
 
 To install the package simply do::
@@ -70,7 +70,7 @@ Creating Engines
 
 Armed with a structure like the one above, it is easy to distinguish oracle databases from mysql databases etc. This means
 that we can easily determine the proper channels to create an engine. Sure it takes little to no effort to copy the engine
-configuration line from SqlAlchemy but when working with many Jupyter Notebooks back and forth, it's easier to go the following route::
+configuration line from SqlAlchemy but when working with different Jupyter Notebooks, it's easier to go the following route::
 
     import dsdbmanager
 
@@ -81,7 +81,7 @@ You can also pass additional Sqlalchemy arguments to the :code:`create_engine` c
 
 That really is the main objective of this project.
 
-But to build on this concept of structuring the databases and their information, There are some extra additions
+But to build on this concept of structuring the databases and their information, there are some extra perks
 
 Extras
 ^^^^^^^
@@ -93,7 +93,7 @@ to encrypt them. This means that a credential file similar in structure to the :
 usernames and passwords. The key to decrypt and encrypt is generated the very first time the package is imported/used.
 
 The good thing about the credentials being stored aside is that they will never show in your jupyter notebooks or scripts. To achieve this,
-a code like this will be used::
+you can do::
 
     import dsdbmanager
 
@@ -105,8 +105,8 @@ a code like this will be used::
     # to access the engines, use the sqlalchemy_engine property. For example
     engine = mysql_database1.sqlalchemy_engine
 
-The first time is connection is being attempted, you will be asked for credentials. Those credentials will then be encrypted and stored
-if the connection was successful.
+The first time a connection is being attempted, you will be asked for credentials. Those credentials will then be encrypted and stored
+if the connection is successful.
 
 Why are there a :code:`connect_only=True` and additional :code:`schema` arguments available when connecting to the databases.
 
@@ -120,7 +120,7 @@ a minute to bring the data you need, the next time you call the function, it wil
 in your new function calls. That is one of the reasons why the :code:`dsdbmanager.dboject.DbMiddleware` can be used as a context manager.
 
 Well that's cool but perhaps you do not want to store your credentials. Maybe you want to pass your username and password to create the engine and then
-make use of the :code:`dsdbmanager.dboject.DbMiddleware` class. There is a :code:`from_engine` for that. For example::
+make use of the :code:`dsdbmanager.dboject.DbMiddleware` class. There is a :code:`from_engine` function for that. For example::
 
     import dsdbmanager
 
@@ -138,6 +138,6 @@ It is also possible to do::
 
 The last command is equivalent to :code:`select [column 1], column_2 from table_1 where column_3 = value_1 and [column 4] = value_2 and column_5 in (value_3, value_4)`.
 
-    1. You will have to use a dictionary to handle columns with spaces or begin with numbers for example
+    1. You will have to use a dictionary to handle columns with spaces or begin with numbers for example.
     2. When you provide a tuple as a value, you are indicating a :code:`key in values` type filtering.
-    3. If your table names have spaces or begin with numbers for example, you couldn't use the '.' notation so you can use do 'mysl_database1[table 2]' for example.
+    3. If your table names have spaces or begin with numbers for example, you couldn't use the :code:`.` notation so you can do :code:`mysl_database1[table 2]` for example.
