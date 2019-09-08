@@ -7,7 +7,6 @@ install:
   - pip install codecov
   - pip install sphinx
 script:
-  - python -m unittest discover
   - coverage run -m unittest discover
 
 after_success:
