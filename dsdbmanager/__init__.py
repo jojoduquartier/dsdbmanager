@@ -52,11 +52,12 @@ def mssql():
     return DsDbManager('mssql')
 
 
-def from_engine(engine):
+def from_engine(engine, schema: str = None):
     """
     Main objective is to use this to create DbMiddleware objects on sqlite engines for quick testing purposes
 
     :param engine:
+    :param schema:
     :return:
 
     >>> import pandas as pd
@@ -78,4 +79,4 @@ def from_engine(engine):
     >>>
 
     """
-    return DbMiddleware(engine, False, None)
+    return DbMiddleware(engine, False, schema)
