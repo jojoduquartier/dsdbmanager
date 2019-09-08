@@ -3,6 +3,8 @@ Data Science DataBase Manager
 
 [![Travis](https://travis-ci.com/jojoduquartier/dsdbmanager.svg?branch=master)](
     https://travis-ci.com/jojoduquartier/dsdbmanager)
+[![Documentation Status](https://readthedocs.org/projects/dsdbmanager/badge/?version=latest)](
+https://dsdbmanager.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/jojoduquartier/dsdbmanager/branch/master/graph/badge.svg)](
     https://codecov.io/gh/jojoduquartier/dsdbmanager)
 
