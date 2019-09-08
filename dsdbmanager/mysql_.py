@@ -7,6 +7,11 @@ host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 
 class Mysql:
     def __init__(self, db_name: str, host_dict: host_type = None):
+        """
+
+        :param db_name: database name
+        :param host_dict: optional database info with host, ports etc
+        """
         self.db_name = db_name
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
@@ -24,7 +29,7 @@ class Mysql:
         :param user: username
         :param pwd: password
         :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
-        :return:
+        :return: sqlalchemy engine
         """
         try:
             import pymysql

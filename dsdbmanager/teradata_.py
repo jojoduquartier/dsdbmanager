@@ -7,6 +7,11 @@ host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 
 class Teradata:
     def __init__(self, db_name: str, host_dict: host_type = None):
+        """
+
+        :param db_name: database name
+        :param host_dict: optional database info with host, ports etc
+        """
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
         if not self.host_dict or 'teradata' not in self.host_dict:
@@ -23,7 +28,7 @@ class Teradata:
         :param user: username
         :param pwd: password
         :param kwargs: for compatibility/additional sqlalchemy create_engine kwargs
-        :return:
+        :return: sqlalchemy engine
         """
         try:
             import sqlalchemy_teradata

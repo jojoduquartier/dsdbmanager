@@ -148,7 +148,9 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
 def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = None):
     """
     This does not directly look for the tables; it simply gives a function that can be used to specify
-    number of rows and columns etc.
+    number of rows and columns etc. When this function is evaluated, it returns a function that holds the context.
+    That function has the table name, the schema and engine. It then knows what to query once it is called.
+
     :param engine: the sqlalchemy engine for the database
     :param table: a table name as in util_function
     :param schema: a schema of interest - None if default schema of database is ok
@@ -259,7 +261,53 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
 
 
 class DbMiddleware(object):
-    def __init__(self, engine, connect_only, schema=None):
+    """
+    This is the main class that is wrapped around the sqlalchemy engines
+
+    Assume I have two tables, 'table_1' and 'table 2' in my default schema for an engine
+
+    >>> dbobject = DbMiddleware(engine, False, None)
+    >>> dbobject.sqlalchemy_engine.table_names()
+    ['table_1', 'table 2']
+
+    I can access the tables as they are properties or methods rather
+
+    >>> dbobject.table1
+    >>> dbobject['table 2']  # because it is not possible to use the . notation here
+
+
+    But these do not do anything, in fact they are all just functions that I can call
+
+    >>> dbobject.table1(rows=10)  # to get  the first 10 rows
+    >>> dbobject['table 2'](rows=100, columns=('column', 'column with space'))  # to only get the specified columns
+
+    I can also filter my data.
+
+    Say I want column_3 in table1 to be equal to 'some_value'
+
+    >>> dbobject.table1(column_3='some_value')
+
+    If I want to get data only when column_3 is either 'some_value' or 'other_value'
+
+    >>> dbobject.table1(column_3=('some_value', 'other_value'))  # here I pass a tuple instead of a single value
+
+    tuples are used all around simply because we cache the result of these methods i.e. the dataframes
+
+    Say I had a column name that had spaces and I couldn't just do what I did above, I could do this
+
+    >>> dbobject.table1(**{'column with space': 'some_value'})  # simply unpacking the dictionary at execution time
+
+    All those methods to pull data are **table_middleware** functions already evaluated at engine,
+    table name and schema level.
+
+    Bonus
+
+    Get Metadata on your table
+
+    >>> dbobject._metadata.table1()
+    """
+
+    def __init__(self, engine: sa.engine.Engine, connect_only: bool, schema: str = None):
         self.sqlalchemy_engine = engine
 
         if not connect_only:
