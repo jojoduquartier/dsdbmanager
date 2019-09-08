@@ -1,11 +1,10 @@
 # dsdbmanager
 Data Science DataBase Manager
 
-[!Travis](https://travis-ci.com/jojoduquartier/dsdbmanager.svg?branch=master)](
-https://travis-ci.com/jojoduquartier/dsdbmanager)
-
-[!codecov](https://codecov.io/gh/jojoduquartier/dsdbmanager/branch/master/graph/badge.svg)](
-https://codecov.io/gh/jojoduquartier/dsdbmanager)
+[![Travis](https://travis-ci.com/jojoduquartier/dsdbmanager.svg?branch=master)](
+    https://travis-ci.com/jojoduquartier/dsdbmanager)
+[![codecov](https://codecov.io/gh/jojoduquartier/dsdbmanager/branch/master/graph/badge.svg)](
+    https://codecov.io/gh/jojoduquartier/dsdbmanager)
 
 Do you love SqlAlchemy? Do you usually have to connect to the same databases all the time for some quick data processing and/or exploration?
 
