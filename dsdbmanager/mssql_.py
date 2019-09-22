@@ -1,6 +1,7 @@
 import typing
 import sqlalchemy as sa
 from .configuring import ConfigFilesManager
+from .exceptions_ import MissingFlavor, MissingDatabase, MissingPackage
 
 host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 
@@ -16,12 +17,12 @@ class Mssql:
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
         if not self.host_dict or 'mssql' not in self.host_dict:
-            raise Exception("No databases available")
+            raise MissingFlavor("No databases available for mssql", None)
 
         self.host_dict = self.host_dict.get('mssql').get(self.db_name, {})
 
         if not self.host_dict:
-            raise Exception(f"{self.db_name} has not been added")
+            raise MissingDatabase(f"{self.db_name} has not been added for mssql", None)
 
     def create_engine(self, user: str = None, pwd: str = None, **kwargs):
         """
@@ -34,7 +35,7 @@ class Mssql:
         try:
             import pymssql
         except ImportError as e:
-            raise e
+            raise MissingPackage("You need the pymssql package to initiate connection", e)
 
         host = self.host_dict.get('host')
 

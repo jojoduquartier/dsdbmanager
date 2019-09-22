@@ -1,6 +1,7 @@
 import typing
 import sqlalchemy as sa
 from .configuring import ConfigFilesManager
+from .exceptions_ import MissingFlavor, MissingDatabase, MissingPackage
 
 host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 
@@ -15,12 +16,12 @@ class Teradata:
         self.host_dict: host_type = ConfigFilesManager().get_hosts() if not host_dict else host_dict
 
         if not self.host_dict or 'teradata' not in self.host_dict:
-            raise Exception("No databases available")
+            raise MissingFlavor("No databases available for teradata", None)
 
         self.host_dict = self.host_dict.get('teradata').get(db_name, {})
 
         if not self.host_dict:
-            raise Exception(f"{db_name} has not been added")
+            raise MissingDatabase(f"{db_name} has not been added for teradata", None)
 
     def create_engine(self, user: str = None, pwd: str = None, **kwargs):
         """
@@ -33,7 +34,7 @@ class Teradata:
         try:
             import sqlalchemy_teradata
         except ImportError as e:
-            raise e
+            raise MissingPackage("You need the sqlalchemy_teradata package to initiate connection", e)
 
         host = self.host_dict.get('host')
 

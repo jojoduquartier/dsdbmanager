@@ -19,7 +19,7 @@ the package is imported. That default corresponds to :code:`pathlib.Path.home() 
 
 To install the package simply do::
 
-    pip install
+    pip install dsdbmanager
 
 
 Once installed, the package provides a set of shell commands to add databases or remove them.

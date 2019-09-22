@@ -7,6 +7,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as orm
 import sqlalchemy.sql.expression as sqlexpression
 import sqlalchemy.sql.elements as sqlelements
+from .exceptions_ import BadArgumentType, NoSuchColumn
 
 function_type_for_dframe = typing.Callable[..., typing.Tuple[np.ndarray, typing.Tuple[str, ...]]]
 regular_column_content = typing.Union[str, int, float, tuple, dict]
@@ -29,7 +30,7 @@ def d_frame(f: function_type_for_dframe, records: bool = False) -> typing.Callab
     """
 
     @functools.wraps(f)
-    def wrap(*args, **kwargs):
+    def wrap(*args, **kwargs) -> pd.DataFrame:
         if not records:
             arr, cols = f(*args, **kwargs)
             if arr.size == 0:
@@ -50,7 +51,7 @@ def inspect_table(table: sa.Table) -> inspect_type:
     """
 
     if not isinstance(table, sa.Table):
-        raise Exception("table argument is not a sqlAlchemy Table")
+        raise BadArgumentType("table argument is not a sqlAlchemy Table", None)
 
     def str_type(typ: sa.types.TypeEngine) -> typing.Union[str, sa.types.TypeEngine]:
         """
@@ -123,7 +124,7 @@ def filter_maker(tbl: sa.Table, k: str, val: regular_column_content) -> sqleleme
             return tbl.c[k] == val
         return tbl.c[k].in_(val)
     except KeyError as e:
-        raise e
+        raise NoSuchColumn(f"{k} is not a column in the {tbl.name} table", e)
 
 
 def complex_filter_maker(tbl: sa.Table, item: typing.Tuple[str, typing.Any],

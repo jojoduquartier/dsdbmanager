@@ -1,6 +1,7 @@
 import typing
 import sqlalchemy as sa
 from .configuring import ConfigFilesManager
+from .exceptions_ import MissingFlavor, MissingDatabase, MissingPackage
 
 host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 
@@ -16,13 +17,13 @@ class Oracle:
 
         # if the host file is empty raise an exception
         if not self.host_dict or 'oracle' not in self.host_dict:
-            raise Exception("No databases available")
+            raise MissingFlavor("No databases available for oracle", None)
 
         self.host_dict = self.host_dict.get('oracle').get(db_name, {})
 
         # if the database has not been added there is nothing we can do
         if not self.host_dict:
-            raise Exception(f"{db_name} has not been added")
+            raise MissingDatabase(f"{db_name} has not been added for oracle", None)
 
     def create_engine(self, user: str = None, pwd: str = None, **kwargs):
         """
@@ -35,7 +36,7 @@ class Oracle:
         try:
             from cx_Oracle import makedsn
         except ImportError as e:
-            raise e
+            raise MissingPackage("You need the cx_Oracle package to initiate connection", e)
 
         host = self.host_dict.get('host')
         port = self.host_dict.get('port', 1521)

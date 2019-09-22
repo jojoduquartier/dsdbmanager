@@ -4,6 +4,7 @@ import typing
 import pathlib
 import warnings
 from cryptography.fernet import Fernet
+from .exceptions_ import MissingFlavor, MissingDatabase
 from .constants import HOST_PATH, CREDENTIAL_PATH, KEY_PATH, FLAVORS_FOR_CONFIG
 
 
@@ -212,7 +213,7 @@ class ConfigFilesManager(object):
         flavor = flavor.strip()
 
         if flavor not in host_file:
-            raise Exception(f"There are no databases with {flavor} flavor")
+            raise MissingFlavor(f"There are no databases with {flavor} flavor", None)
 
         # database name
         name: str = click.prompt(
@@ -222,7 +223,7 @@ class ConfigFilesManager(object):
         name = name.strip()
 
         if name not in host_file[flavor]:
-            raise Exception(f"There are no {name} databases under the {flavor} flavor")
+            raise MissingDatabase(f"There are no {name} databases under the {flavor} flavor", None)
 
         _ = host_file[flavor].pop(name)
 
@@ -232,12 +233,12 @@ class ConfigFilesManager(object):
         except OSError as e:
             raise e
 
-        self.remove_credential(flavor, name)
+        self._remove_credential(flavor, name)
 
         return None
 
     # TODO - very similar to the method above. improve
-    def remove_credential(self, flavor: str, name: str):
+    def _remove_credential(self, flavor: str, name: str):
         """
         removes credentials only
         :param flavor: one of the sql flavor/dialects used. oracle, mysql, etc.
@@ -284,7 +285,7 @@ class ConfigFilesManager(object):
         flavor = flavor.strip()
 
         if flavor not in credential_dict:
-            raise Exception(f"There are no databases with {flavor} flavor")
+            raise MissingFlavor(f"There are no databases with {flavor} flavor", None)
 
         # database name
         name: str = click.prompt(
@@ -294,7 +295,7 @@ class ConfigFilesManager(object):
         name = name.strip()
 
         if name not in credential_dict[flavor]:
-            raise Exception(f"There are no {name} databases under the {flavor} flavor")
+            raise MissingDatabase(f"There are no {name} databases under the {flavor} flavor", None)
 
         username = credential_dict[flavor][name].get('username')
         username = self.encrypt_decrypt(username, encrypt=False)

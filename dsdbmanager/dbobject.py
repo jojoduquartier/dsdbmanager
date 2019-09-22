@@ -18,6 +18,10 @@ from sqlalchemy.engine import reflection
 from .configuring import ConfigFilesManager
 from .utils import d_frame, inspect_table, filter_maker
 from .constants import FLAVORS_FOR_CONFIG, CACHE_SIZE, CHUNK_SIZE
+from .exceptions_ import (
+    BadArgumentType, OperationalError, NoSuchColumn, MissingFlavor, NotImplementedFlavor,
+    EmptyHostFile
+)
 
 host_type = typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]
 update_key_type = typing.Union[typing.Tuple[str, ...], typing.Dict[str, str]]
@@ -76,7 +80,7 @@ def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engin
                 last_successful_insert = group[-1]
                 count += result.rowcount
             except exc.OperationalError as e:
-                raise Exception(f"Failed to insert records. Last successfull{last_successful_insert}", e)
+                raise OperationalError(f"Failed to insert records. Last successful{last_successful_insert}", e)
 
     return count
 
@@ -103,13 +107,13 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
     groups = toolz.partition_all(CHUNK_SIZE, df_.where(pd.notnull(df_), None).to_dict(orient='records'))
 
     if not isinstance(keys, tuple) and not isinstance(keys, dict):
-        raise Exception("keys and values must either be both tuples or both dicts")
+        raise BadArgumentType("keys and values must either be both tuples or both dicts", None)
 
     # create where clause, and update statement
     update_statement: dml.Update
     if isinstance(keys, tuple):
         if not isinstance(values, tuple):
-            raise Exception("keys and values must either be both tuples or both dicts")
+            raise BadArgumentType("keys and values must either be both tuples or both dicts", None)
 
         where = [tbl.c[el] == sa.bindparam(f"{el.lower()}_updt") for el in keys]
         update_statement = tbl.update().where(sa.and_(*where)).values(
@@ -118,7 +122,7 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
 
     if isinstance(keys, dict):
         if not isinstance(values, dict):
-            raise Exception("keys and values must either be both tuples or both dicts")
+            raise BadArgumentType("keys and values must either be both tuples or both dicts", None)
         where = [tbl.c[k] == sa.bindparam(f"{v.lower()}_updt") for k, v in keys.items()]
         update_statement = tbl.update().where(sa.and_(*where)).values(
             dict((k, sa.bindparam(f"{v.lower()}_updt")) for k, v in values.items())
@@ -140,7 +144,7 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
                 last_successful_update = group[-1]
                 count += result.rowcount
             except exc.OperationalError as e:
-                raise Exception(f"Failed to update records. Lase succesful update: {last_successful_update}", e)
+                raise OperationalError(f"Failed to update records. Last successful update: {last_successful_update}", e)
 
     return count
 
@@ -182,7 +186,7 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
             # check if all columns are in table
             not_in_table = set(columns) - set(tbl_cols)
             if not_in_table == set(columns):
-                raise Exception(f"None of the columns [{', '.join(sorted(columns))}] are in table {table}")
+                raise NoSuchColumn(f"None of the columns [{', '.join(sorted(columns))}] are in table {table}", None)
 
             if len(not_in_table) > 0:
                 warnings.warn(f"Columns [{', '.join(sorted(not_in_table))}] are not in table {table}")
@@ -211,53 +215,6 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
         return arr, cols
 
     return wrapped
-
-
-@toolz.curry
-def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
-                  connection_object: connection_object_type, config_schema: str, connect_only: bool,
-                  schema: str = None):
-    """
-    Try connecting to the database. Write credentials on success. Using a function only so that the connection
-    is only attempted when function is called.
-    :param config_manager: a configuration manager to deal with host files etc
-    :param flavor: the sql flavor/dialect where the database lies
-    :param db_name: database name provided when adding database
-    :param connection_object: one of the connectors from the likes of myql_.py to create engine
-    :param config_schema: the schema provided when adding database
-    :param connect_only: True if all we want is connect and not inspect for tables or views
-    :param schema: if user wants to specify a different schema than the one supplied when adding database
-    :return:
-    """
-
-    username, password = config_manager.read_credentials(flavor, db_name)
-
-    if username is None or password is None:
-        write_credentials = True
-        username, password = config_manager.ask_credentials()
-    else:
-        write_credentials = False
-
-    engine: sa.engine.base.Engine = connection_object.create_engine(
-        config_manager.encrypt_decrypt(username, encrypt=False).decode("utf-8"),
-        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8")
-    )
-
-    try:
-        engine.connect().close()
-    except exc.DatabaseError as e:
-        raise e
-
-    if write_credentials:
-        config_manager.write_credentials(flavor, db_name, username, password)
-
-    if not schema:
-        schema = config_schema
-
-    # technically when connect_only is True, schema should not matter
-
-    middleware = DbMiddleware(engine, connect_only, schema)
-    return middleware
 
 
 class DbMiddleware(object):
@@ -339,6 +296,53 @@ class DbMiddleware(object):
             delattr(self, attribute)
 
 
+@toolz.curry
+def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
+                  connection_object: connection_object_type, config_schema: str, connect_only: bool,
+                  schema: str = None) -> DbMiddleware:
+    """
+    Try connecting to the database. Write credentials on success. Using a function only so that the connection
+    is only attempted when function is called.
+    :param config_manager: a configuration manager to deal with host files etc
+    :param flavor: the sql flavor/dialect where the database lies
+    :param db_name: database name provided when adding database
+    :param connection_object: one of the connectors from the likes of myql_.py to create engine
+    :param config_schema: the schema provided when adding database
+    :param connect_only: True if all we want is connect and not inspect for tables or views
+    :param schema: if user wants to specify a different schema than the one supplied when adding database
+    :return:
+    """
+
+    username, password = config_manager.read_credentials(flavor, db_name)
+
+    if username is None or password is None:
+        write_credentials = True
+        username, password = config_manager.ask_credentials()
+    else:
+        write_credentials = False
+
+    engine: sa.engine.base.Engine = connection_object.create_engine(
+        config_manager.encrypt_decrypt(username, encrypt=False).decode("utf-8"),
+        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8")
+    )
+
+    try:
+        engine.connect().close()
+    except exc.DatabaseError as e:
+        raise e
+
+    if write_credentials:
+        config_manager.write_credentials(flavor, db_name, username, password)
+
+    if not schema:
+        schema = config_schema
+
+    # technically when connect_only is True, schema should not matter
+
+    middleware = DbMiddleware(engine, connect_only, schema)
+    return middleware
+
+
 class DsDbManager(object):
     """
     oracle = DsDbManager('oracle') # will create the object with databases as properties/methods
@@ -349,17 +353,20 @@ class DsDbManager(object):
 
     def __init__(self, flavor: str):
         if flavor.lower() not in FLAVORS_FOR_CONFIG:
-            raise Exception(f"Invalid flavor: expected one of {', '.join(FLAVORS_FOR_CONFIG)}, got {flavor}")
+            raise NotImplementedFlavor(
+                f"Invalid flavor: expected one of {', '.join(FLAVORS_FOR_CONFIG)}, got {flavor}",
+                None
+            )
 
         self._flavor = flavor
         self._config_file_manager = ConfigFilesManager()
         self._host_dict = self._config_file_manager.get_hosts()
 
         if not self._host_dict:
-            raise Exception("Host file is empty. Consider adding some databases")
+            raise EmptyHostFile("Host file is empty", None)
 
         if flavor not in self._host_dict:
-            raise Exception(f"No databases for {flavor}")
+            raise MissingFlavor(f"No databases for {flavor}", None)
 
         # available databases
         self._available_databases = list(self._host_dict.get(flavor).keys())
