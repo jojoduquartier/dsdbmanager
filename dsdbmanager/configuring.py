@@ -28,7 +28,7 @@ class ConfigFilesManager(object):
             with self.host_location.open('r') as f:
                 hosts = json.load(f)
 
-        except OSError as _:
+        except (OSError, json.JSONDecodeError) as _:
             hosts = {}
 
         return hosts
@@ -80,7 +80,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('r') as f:
                 credential_file = json.load(f)
-        except OSError as _:
+        except (OSError, json.JSONDecodeError) as _:
             return None, None
 
         if flavor not in credential_file:
@@ -108,7 +108,7 @@ class ConfigFilesManager(object):
             try:
                 with self.credential_location.open('r') as f:
                     credential_dict = json.load(f)
-            except OSError as e:
+            except (OSError, json.JSONDecodeError) as e:
                 raise e
 
         if flavor not in credential_dict:
@@ -130,7 +130,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('w') as f:
                 json.dump(credential_dict, f)
-        except OSError as e:
+        except (OSError, TypeError) as e:
             raise e
 
         return None
@@ -143,7 +143,7 @@ class ConfigFilesManager(object):
         try:
             with self.host_location.open('r') as f:
                 host_file = json.load(f)
-        except OSError as e:
+        except (OSError, json.JSONDecodeError) as e:
             raise e
 
         # database flavor
@@ -192,7 +192,7 @@ class ConfigFilesManager(object):
         try:
             with self.host_location.open('w') as f:
                 json.dump(host_file, f)
-        except OSError as er:
+        except (OSError, TypeError) as er:
             raise er
 
         return None
@@ -205,7 +205,7 @@ class ConfigFilesManager(object):
         try:
             with self.host_location.open('r') as f:
                 host_file = json.load(f)
-        except OSError as e:
+        except (OSError, json.JSONDecodeError) as e:
             raise e
 
         # database flavor
@@ -230,7 +230,7 @@ class ConfigFilesManager(object):
         try:
             with self.host_location.open('w') as f:
                 json.dump(host_file, f)
-        except OSError as e:
+        except (OSError, TypeError) as e:
             raise e
 
         self._remove_credential(flavor, name)
@@ -248,7 +248,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('r') as f:
                 credential_file = json.load(f)
-        except OSError as e:
+        except (OSError, json.JSONDecodeError) as e:
             raise e
 
         if flavor not in credential_file:
@@ -262,7 +262,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('w') as f:
                 json.dump(credential_file, f)
-        except OSError as e:
+        except (OSError, TypeError) as e:
             raise e
 
         return None
@@ -275,7 +275,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('r') as f:
                 credential_dict = json.load(f)
-        except OSError as e:
+        except (OSError, json.JSONDecodeError) as e:
             raise e
 
         warnings.warn("Database connection will not be tested with these credentials")
