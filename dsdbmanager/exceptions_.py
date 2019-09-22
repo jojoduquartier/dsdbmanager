@@ -3,13 +3,13 @@ Custom Exceptions
 """
 
 
-class BaseException(Exception):
+class BaseException_(Exception):
     def __init__(self, message, errors=None):
         super().__init__(message)
         self.errors = errors
 
 
-class EmptyHostFile(BaseException):
+class EmptyHostFile(BaseException_):
     """
     If the host file is empty this exception will be raised
     """
@@ -18,7 +18,7 @@ class EmptyHostFile(BaseException):
         super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
-class MissingFlavor(BaseException):
+class MissingFlavor(BaseException_):
     """
     If a given flavor is not in the host file then this should be raised
     """
@@ -27,7 +27,7 @@ class MissingFlavor(BaseException):
         super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
-class MissingDatabase(BaseException):
+class MissingDatabase(BaseException_):
     """
     If the database has not been added to the flavor then it raise this error
     """
@@ -36,21 +36,21 @@ class MissingDatabase(BaseException):
         super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
-class NoSuchColumn(BaseException):
+class NoSuchColumn(BaseException_):
     pass
 
 
-class BadArgumentType(BaseException):
+class BadArgumentType(BaseException_):
     pass
 
 
-class OperationalError(BaseException):
+class OperationalError(BaseException_):
     pass
 
 
-class NotImplementedFlavor(BaseException):
+class NotImplementedFlavor(BaseException_):
     pass
 
 
-class MissingPackage(BaseException):
+class MissingPackage(BaseException_):
     pass

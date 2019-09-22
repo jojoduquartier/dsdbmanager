@@ -12,6 +12,10 @@ from dsdbmanager.dbobject import (
     TableInsert,
     TableUpdate
 )
+from dsdbmanager.exceptions_ import (
+    BadArgumentType,
+    NoSuchColumn
+)
 
 
 class TestDbObject(unittest.TestCase):
@@ -212,6 +216,15 @@ class TestDbObject(unittest.TestCase):
         self.assertEqual(japan_current_value[0][0], japan_update.loc[0, 'the continent'])
 
         # errors on providing the wrong type of arguments for key etc
+        with self.assertRaises(BadArgumentType):
+            update_on_table(
+                df=japan_update,
+                keys='country',
+                values='continent',
+                table_name=self.country_table.name,
+                engine=self.engine,
+                schema=None
+            )
 
     def test_table_middleware(self):
         """
@@ -244,12 +257,16 @@ class TestDbObject(unittest.TestCase):
         self.assertEqual(read_from_currency_table().shape, (len(currencies), 3))
         self.assertEqual(read_from_currency_table(rows=1).shape, (1, 3))
         self.assertEqual(read_from_currency_table(rows=1, columns=('abbreviation', 'countries')).shape, (1, 2))
+        self.assertEqual(read_from_currency_table(abbreviation='USD').shape, (1, 3))
+        self.assertTrue(read_from_currency_table(abbreviation='FCFA').empty)
 
         with self.assertWarnsRegex(UserWarning, r"Columns \[made_up, not there\] are not in table currency"):
             read_with_warning = read_from_currency_table(columns=('abbreviation', 'countries', 'not there', 'made_up'))
             self.assertEqual(read_with_warning.shape, (len(currencies), 2))
 
-        # TODO use self.assertRaisesRegex() here
+        # query bad columns
+        with self.assertRaises(NoSuchColumn):
+            _ = read_from_currency_table(columns=('madeup', 'made up'))
 
     def test_dbmiddleware(self):
         """

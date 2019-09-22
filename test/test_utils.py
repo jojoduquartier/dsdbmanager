@@ -5,6 +5,7 @@ import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.sql.elements as sqlelements
 from sqlalchemy.ext.declarative import declarative_base
+from dsdbmanager.exceptions_ import NoSuchColumn
 from dsdbmanager.utils import d_frame, inspect_table, filter_maker
 
 
@@ -147,6 +148,9 @@ class TesUtil(unittest.TestCase):
                 self.students_table.columns.age == 10
             )
         )
+
+        with self.assertRaises(NoSuchColumn):
+            filter_maker(self.students_table, 'madeup', 10)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
-import sqlalchemy.sql.expression as sqlexpression
 import sqlalchemy.sql.elements as sqlelements
 from .exceptions_ import BadArgumentType, NoSuchColumn
 
