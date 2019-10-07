@@ -1,4 +1,8 @@
+import json
 import unittest
+import pathlib
+import tempfile
+import contextlib
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.exc as exc
@@ -8,14 +12,19 @@ from dsdbmanager.dbobject import (
     update_on_table,
     table_middleware,
     DbMiddleware,
+    DsDbManager,
     TableMeta,
     TableInsert,
     TableUpdate
 )
 from dsdbmanager.exceptions_ import (
     BadArgumentType,
-    NoSuchColumn
+    NoSuchColumn,
+    NotImplementedFlavor,
+    EmptyHostFile,
+    MissingFlavor
 )
+from dsdbmanager.configuring import ConfigFilesManager
 
 
 class TestDbObject(unittest.TestCase):
@@ -65,6 +74,34 @@ class TestDbObject(unittest.TestCase):
         )
 
         cls.engine_function = lambda _: sa.create_engine("sqlite:///")
+
+        cls.host = {
+            'oracle': {
+                'mydatabase': {
+                    'name': 'mydatabase',
+                    'host': 'localhost',
+                    'sid': 'pyt'
+                },
+                'newdatabase': {
+                    'name': 'newdatabase',
+                    'host': 'localhost',
+                    'sid': 'pyt',
+                    'schema': 'schemo'
+                }
+            }
+        }
+
+    @classmethod
+    @contextlib.contextmanager
+    def generate_path(cls, suffix=None) -> pathlib.Path:
+        try:
+            temp = tempfile.NamedTemporaryFile(suffix=suffix) if suffix else tempfile.NamedTemporaryFile()
+            yield pathlib.Path(temp.name)
+        except OSError as _:
+            temp = None
+        finally:
+            if temp is not None:
+                temp.close()
 
     @classmethod
     def tearDownClass(cls):
@@ -290,7 +327,63 @@ class TestDbObject(unittest.TestCase):
             self.assertIsInstance(dbm._insert, TableInsert)
             self.assertIsInstance(dbm._update, TableUpdate)
 
-    # TODO - test TableMeta, TableInsert, TableUpdate: check for keyerror etc
+    def test_dsdbmanager(self):
+        with self.assertRaises(NotImplementedFlavor):
+            _ = DsDbManager('somemadeupflavor')
+
+        with self.generate_path(suffix='.json') as hp, self.generate_path(
+                suffix='.json') as cp, self.generate_path() as kp:
+            c = ConfigFilesManager(
+                hp,
+                cp,
+                kp
+            )
+
+            # test empty host file
+            with hp.open('w') as f:
+                json.dump({}, f)
+
+            with self.assertRaises(EmptyHostFile):
+                _ = DsDbManager('oracle', c)
+
+            # test with actual host data
+            with hp.open('w') as f:
+                json.dump(self.host, f)
+
+            dbobject = DsDbManager('oracle', c)
+
+            # test for missing flavor
+            with self.assertRaises(MissingFlavor):
+                _ = DsDbManager('teradata', c)
+
+            # some properties must be there by default
+            for attribute in [
+                '_flavor',
+                '_config_file_manager',
+                '_host_dict',
+                '_available_databases',
+                '_schemas_per_databases',
+                '_connection_object_creator',
+            ]:
+                with self.subTest(attribute=attribute):
+                    self.assertTrue(hasattr(dbobject, attribute))
+
+            # properties based on host file
+            for host_database in self.host.get('oracle'):
+                with self.subTest(host_database=host_database):
+                    self.assertTrue(hasattr(dbobject, host_database))
+
+            # the host_dict should be the same dictionary as host
+            self.assertEqual(self.host, dbobject._host_dict)
+
+            # two available databases and two schemas
+            self.assertEqual(len(dbobject._available_databases), 2)
+            self.assertEqual(len(dbobject._schemas_per_databases), 2)
+            self.assertEqual(dbobject._available_databases, ['mydatabase', 'newdatabase'])
+            self.assertEqual(dbobject._schemas_per_databases, [None, 'schemo'])
+
+
+# TODO - test TableMeta, TableInsert, TableUpdate: check for keyerror etc
 
 
 if __name__ == '__main__':

@@ -351,7 +351,7 @@ class DsDbManager(object):
     oracle['some data base']
     """
 
-    def __init__(self, flavor: str):
+    def __init__(self, flavor: str, config_file_manager: ConfigFilesManager = None):
         if flavor.lower() not in FLAVORS_FOR_CONFIG:
             raise NotImplementedFlavor(
                 f"Invalid flavor: expected one of {', '.join(FLAVORS_FOR_CONFIG)}, got {flavor}",
@@ -359,7 +359,7 @@ class DsDbManager(object):
             )
 
         self._flavor = flavor
-        self._config_file_manager = ConfigFilesManager()
+        self._config_file_manager = ConfigFilesManager() if config_file_manager is None else config_file_manager
         self._host_dict = self._config_file_manager.get_hosts()
 
         if not self._host_dict:
