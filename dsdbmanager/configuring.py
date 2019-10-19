@@ -315,3 +315,17 @@ class ConfigFilesManager(object):
         self.write_credentials(flavor, name, username, password, credential_dict)
 
         return None
+
+    def __str__(self):
+        dsc = "dsdbmanager configurer with:\n"  # first line message
+
+        host_path = "- host file at: " + str(self.host_location)  # second line
+        host_path = host_path.rjust(len(host_path) + 4) + '\n'
+
+        cred_path = "- credential file at: " + str(self.credential_location)  # third line
+        cred_path = cred_path.rjust(len(cred_path) + 4) + '\n'
+
+        key_path = "- key located at: " + str(self.key_location)  # fourth line
+        key_path = key_path.rjust(len(key_path) + 4)
+
+        return f"{dsc}{host_path}{cred_path}{key_path}"
