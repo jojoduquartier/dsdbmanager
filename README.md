@@ -7,6 +7,13 @@ Data Science DataBase Manager
 https://dsdbmanager.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/jojoduquartier/dsdbmanager/branch/master/graph/badge.svg)](
     https://codecov.io/gh/jojoduquartier/dsdbmanager)
+    
+# Installation
+```python
+pip install dsdbmanager
+```
+
+# ReadMe
 
 Do you love SqlAlchemy? Do you usually have to connect to the same databases all the time for some quick data processing and/or exploration?
 
