@@ -75,7 +75,7 @@ class ConfigFilesManager(object):
         :return: tuple of byte strings (username, password)
         """
         if not self.credential_location.exists():
-            return None
+            return None, None
 
         try:
             with self.credential_location.open('r') as f:
