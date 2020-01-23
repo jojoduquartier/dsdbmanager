@@ -114,18 +114,10 @@ class ConfigFilesManager(object):
         if flavor not in credential_dict:
             credential_dict[flavor] = {}
 
-        if name not in credential_dict[flavor]:
-            credential_dict[flavor] = {
-                name: {
-                    'username': username.decode("utf-8"),
-                    'password': password.decode("utf-8")
-                }
-            }
-        else:
-            credential_dict[flavor][name] = {
-                'username': username.decode("utf-8"),
-                'password': password.decode("utf-8")
-            }
+        credential_dict[flavor][name] = {
+            'username': username.decode("utf-8"),
+            'password': password.decode("utf-8")
+        }
 
         try:
             with self.credential_location.open('w') as f:
