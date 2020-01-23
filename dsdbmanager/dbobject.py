@@ -314,9 +314,9 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     """
 
     username, password = config_manager.read_credentials(flavor, db_name)
+    write_credentials = True
 
     if username is None or password is None:
-        write_credentials = True
         username, password = config_manager.ask_credentials()
     else:
         write_credentials = False
