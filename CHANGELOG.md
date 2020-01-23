@@ -8,3 +8,10 @@ This is mainly for sqlite and other flavor/dialects that are yet to be implement
 ### Changed
 - `engine` property is now `sqlalchemy_engine` for `dsdbobject.DbMiddleware` class.
 - pre-configured `schema` is now used when available. User does not have to specify the schema if they had it added
+
+## [Version 1.0.0]
+First release deployed to PyPI
+
+## [Version 1.0.1]
+There was a bug with the way credentials were stored. This caused the whole credential branch
+for a dialect to be replaced. It has been fixed
