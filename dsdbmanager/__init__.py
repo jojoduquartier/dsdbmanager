@@ -1,6 +1,6 @@
 import json
-from .dbobject import DsDbManager, DbMiddleware
 from .configuring import ConfigFilesManager
+from .dbobject import DsDbManager, DbMiddleware
 
 __version__ = '1.0.1'
 configurer = ConfigFilesManager()
@@ -52,6 +52,10 @@ def mssql():
     return DsDbManager('mssql')
 
 
+def snowflake():
+    return DsDbManager('snowflake')
+
+
 def from_engine(engine, schema: str = None):
     """
     Main objective is to use this to create DbMiddleware objects on sqlite engines for quick testing purposes
@@ -76,7 +80,8 @@ def from_engine(engine, schema: str = None):
     >>> df1: pd.DataFrame = db.test()
     >>> df1.equals(df)
     True
-    >>>
+
+    >>> engine.dispose()
 
     """
     return DbMiddleware(engine, False, schema)

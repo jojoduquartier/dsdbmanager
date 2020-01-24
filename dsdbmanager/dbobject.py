@@ -14,6 +14,7 @@ from .mssql_ import Mssql
 from .mysql_ import Mysql
 from .oracle_ import Oracle
 from .teradata_ import Teradata
+from .snowflake_ import Snowflake
 from sqlalchemy.engine import reflection
 from .configuring import ConfigFilesManager
 from .utils import d_frame, inspect_table, filter_maker
@@ -30,7 +31,8 @@ connection_object_type = typing.Union[
     Oracle,
     Teradata,
     Mysql,
-    Mssql
+    Mssql,
+    Snowflake
 ]
 
 
@@ -299,7 +301,7 @@ class DbMiddleware(object):
 @toolz.curry
 def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
                   connection_object: connection_object_type, config_schema: str, connect_only: bool,
-                  schema: str = None) -> DbMiddleware:
+                  schema: str = None, **engine_kwargs) -> DbMiddleware:
     """
     Try connecting to the database. Write credentials on success. Using a function only so that the connection
     is only attempted when function is called.
@@ -310,6 +312,7 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     :param config_schema: the schema provided when adding database
     :param connect_only: True if all we want is connect and not inspect for tables or views
     :param schema: if user wants to specify a different schema than the one supplied when adding database
+    :param engine_kwargs: engine arguments, like echo, or warehouse, schema and role for snowflake
     :return:
     """
 
@@ -323,7 +326,8 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
 
     engine: sa.engine.base.Engine = connection_object.create_engine(
         config_manager.encrypt_decrypt(username, encrypt=False).decode("utf-8"),
-        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8")
+        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8"),
+        **engine_kwargs
     )
 
     try:
@@ -400,6 +404,9 @@ class DsDbManager(object):
 
         if self._flavor.lower() == 'mysql':
             return Mysql(db_name, self._host_dict)
+
+        if self._flavor.lower() == 'snowflake':
+            return Snowflake(db_name, self._host_dict)
 
     def __getitem__(self, item):
         return self.__dict__[item]

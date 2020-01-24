@@ -157,7 +157,7 @@ class ConfigFilesManager(object):
                 return None
 
         # additional_infos
-        host = click.prompt("Host/Database Address", type=str)
+        host = click.prompt("Host/Database Address or Snowflake Account", type=str)
         schema = click.prompt("Schema - Enter if none", default='', type=str)
         sid = click.prompt("SID - Enter if none", default='', type=str)
         service_name = click.prompt("Service Name - Enter if none", default='', type=str)
