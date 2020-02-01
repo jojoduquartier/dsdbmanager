@@ -3,6 +3,7 @@ from dsdbmanager.mssql_ import Mssql
 from dsdbmanager.mysql_ import Mysql
 from dsdbmanager.oracle_ import Oracle
 from dsdbmanager.teradata_ import Teradata
+from dsdbmanager.snowflake_ import Snowflake
 from dsdbmanager.exceptions_ import MissingFlavor, MissingDatabase, MissingPackage
 
 
@@ -36,7 +37,14 @@ class TestConnectors(unittest.TestCase):
                     'host': 'somehost',
                     'port': 0000
                 }
-            }
+            },
+            'snowflake': {
+                'database1': {
+                    'name': 'database1',
+                    'host': 'somehost',
+                    'port': 0000
+                }
+            },
         }
 
     @classmethod
@@ -50,12 +58,14 @@ class TestConnectors(unittest.TestCase):
                     'mysql',
                     'mssql',
                     'teradata',
+                    'snowflake'
                 ],
                 [
                     Oracle,
                     Mysql,
                     Mssql,
                     Teradata,
+                    Snowflake
                 ]):
             with self.subTest(flavor=name):
                 # test with host improper host file. should raise MissingFlavor

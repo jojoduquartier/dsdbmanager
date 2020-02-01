@@ -14,6 +14,7 @@ from .mssql_ import Mssql
 from .mysql_ import Mysql
 from .oracle_ import Oracle
 from .teradata_ import Teradata
+from .snowflake_ import Snowflake
 from sqlalchemy.engine import reflection
 from .configuring import ConfigFilesManager
 from .utils import d_frame, inspect_table, filter_maker
@@ -30,7 +31,8 @@ connection_object_type = typing.Union[
     Oracle,
     Teradata,
     Mysql,
-    Mssql
+    Mssql,
+    Snowflake
 ]
 
 
@@ -66,21 +68,22 @@ def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engin
 
     # insert
     count, last_successful_insert = 0, None
-    for group in groups:
-        try:
-            result = engine.execute(tbl.insert(), group)
-            last_successful_insert = group[-1]
-            count += result.rowcount
-        except exc.OperationalError as _:
-            "Try Again"
-            time.sleep(2)
-
+    with engine.connect() as connection:
+        for group in groups:
             try:
-                result = engine.execute(tbl.insert(), group)
+                result = connection.execute(tbl.insert(), group)
                 last_successful_insert = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as e:
-                raise OperationalError(f"Failed to insert records. Last successful{last_successful_insert}", e)
+            except exc.OperationalError as _:
+                "Try Again"
+                time.sleep(2)
+
+                try:
+                    result = connection.execute(tbl.insert(), group)
+                    last_successful_insert = group[-1]
+                    count += result.rowcount
+                except exc.OperationalError as e:
+                    raise OperationalError(f"Failed to insert records. Last successful{last_successful_insert}", e)
 
     return count
 
@@ -130,21 +133,24 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
 
     # update
     count, last_successful_update = 0, None
-    for group in groups:
-        try:
-            result = engine.execute(update_statement, group)
-            last_successful_update = group[-1]
-            count += result.rowcount
-        except exc.OperationalError as _:
-            # try again
-            time.sleep(2)
-
+    with engine.connect() as connection:
+        for group in groups:
             try:
-                result = engine.execute(update_statement, group)
+                result = connection.execute(update_statement, group)
                 last_successful_update = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as e:
-                raise OperationalError(f"Failed to update records. Last successful update: {last_successful_update}", e)
+            except exc.OperationalError as _:
+                # try again
+                time.sleep(2)
+
+                try:
+                    result = connection.execute(update_statement, group)
+                    last_successful_update = group[-1]
+                    count += result.rowcount
+                except exc.OperationalError as e:
+                    raise OperationalError(
+                        f"Failed to update records. Last successful update: {last_successful_update}", e
+                    )
 
     return count
 
@@ -199,7 +205,8 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
             query = query.where(sa.and_(*filters))
 
         # execute
-        results = engine.execute(query)
+        with engine.connect() as connection:
+            results = connection.execute(query)
 
         # fetch
         if rows is not None:
@@ -299,7 +306,7 @@ class DbMiddleware(object):
 @toolz.curry
 def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
                   connection_object: connection_object_type, config_schema: str, connect_only: bool,
-                  schema: str = None) -> DbMiddleware:
+                  schema: str = None, **engine_kwargs) -> DbMiddleware:
     """
     Try connecting to the database. Write credentials on success. Using a function only so that the connection
     is only attempted when function is called.
@@ -310,6 +317,7 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
     :param config_schema: the schema provided when adding database
     :param connect_only: True if all we want is connect and not inspect for tables or views
     :param schema: if user wants to specify a different schema than the one supplied when adding database
+    :param engine_kwargs: engine arguments, like echo, or warehouse, schema and role for snowflake
     :return:
     """
 
@@ -323,7 +331,8 @@ def db_middleware(config_manager: ConfigFilesManager, flavor: str, db_name: str,
 
     engine: sa.engine.base.Engine = connection_object.create_engine(
         config_manager.encrypt_decrypt(username, encrypt=False).decode("utf-8"),
-        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8")
+        config_manager.encrypt_decrypt(password, encrypt=False).decode("utf-8"),
+        **engine_kwargs
     )
 
     try:
@@ -400,6 +409,9 @@ class DsDbManager(object):
 
         if self._flavor.lower() == 'mysql':
             return Mysql(db_name, self._host_dict)
+
+        if self._flavor.lower() == 'snowflake':
+            return Snowflake(db_name, self._host_dict)
 
     def __getitem__(self, item):
         return self.__dict__[item]

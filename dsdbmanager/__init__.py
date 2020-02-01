@@ -1,38 +1,38 @@
 import json
-from .dbobject import DsDbManager, DbMiddleware
 from .configuring import ConfigFilesManager
+from .dbobject import DsDbManager, DbMiddleware
 
-__version__ = '1.0.1'
-configurer = ConfigFilesManager()
+__version__ = '1.0.2'
+__configurer__ = ConfigFilesManager()
 
 # first initialize empty files
 # if there are no host files, create an empty json file #
-if not configurer.host_location.exists():
+if not __configurer__.host_location.exists():
     try:
-        configurer.host_location.touch(exist_ok=True)
-        with configurer.host_location.open('w') as f:
+        __configurer__.host_location.touch(exist_ok=True)
+        with __configurer__.host_location.open('w') as f:
             json.dump({}, f)
     except OSError as e:
         raise Exception("Could not write at host file location", e)
 
 # if there are credential files create an empty json file #
-if not configurer.credential_location.exists():
-    configurer.credential_location.touch(exist_ok=True)
+if not __configurer__.credential_location.exists():
+    __configurer__.credential_location.touch(exist_ok=True)
     try:
-        with configurer.credential_location.open('w') as f:
+        with __configurer__.credential_location.open('w') as f:
             json.dump({}, f)
     except OSError as e:
         raise Exception("Could not write at credential file location", e)
 
 # if there are no keys, create one and store it at key location #
-if not configurer.key_location.exists():
-    configurer.key_location.touch(exist_ok=True)
-    configurer.key_location.write_bytes(configurer.generate_key())
+if not __configurer__.key_location.exists():
+    __configurer__.key_location.touch(exist_ok=True)
+    __configurer__.key_location.write_bytes(__configurer__.generate_key())
 
 # functions for users to use
-add_database = configurer.add_new_database_info
-remove_database = configurer.remove_database
-reset_credentials = configurer.reset_credentials
+add_database = __configurer__.add_new_database_info
+remove_database = __configurer__.remove_database
+reset_credentials = __configurer__.reset_credentials
 
 
 # easy access for databases
@@ -50,6 +50,10 @@ def mysql():
 
 def mssql():
     return DsDbManager('mssql')
+
+
+def snowflake():
+    return DsDbManager('snowflake')
 
 
 def from_engine(engine, schema: str = None):
@@ -76,7 +80,8 @@ def from_engine(engine, schema: str = None):
     >>> df1: pd.DataFrame = db.test()
     >>> df1.equals(df)
     True
-    >>>
+
+    >>> engine.dispose()
 
     """
     return DbMiddleware(engine, False, schema)
