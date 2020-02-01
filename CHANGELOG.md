@@ -15,3 +15,6 @@ First release deployed to PyPI
 ## [Version 1.0.1]
 There was a bug with the way credentials were stored. This caused the whole credential branch
 for a dialect to be replaced. It has been fixed
+
+## [Version 1.0.2]
+The snowflake dialect has been added

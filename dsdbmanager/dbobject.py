@@ -68,21 +68,22 @@ def insert_into_table(df: pd.DataFrame, table_name: str, engine: sa.engine.Engin
 
     # insert
     count, last_successful_insert = 0, None
-    for group in groups:
-        try:
-            result = engine.execute(tbl.insert(), group)
-            last_successful_insert = group[-1]
-            count += result.rowcount
-        except exc.OperationalError as _:
-            "Try Again"
-            time.sleep(2)
-
+    with engine.connect() as connection:
+        for group in groups:
             try:
-                result = engine.execute(tbl.insert(), group)
+                result = connection.execute(tbl.insert(), group)
                 last_successful_insert = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as e:
-                raise OperationalError(f"Failed to insert records. Last successful{last_successful_insert}", e)
+            except exc.OperationalError as _:
+                "Try Again"
+                time.sleep(2)
+
+                try:
+                    result = connection.execute(tbl.insert(), group)
+                    last_successful_insert = group[-1]
+                    count += result.rowcount
+                except exc.OperationalError as e:
+                    raise OperationalError(f"Failed to insert records. Last successful{last_successful_insert}", e)
 
     return count
 
@@ -132,21 +133,24 @@ def update_on_table(df: pd.DataFrame, keys: update_key_type, values: update_key_
 
     # update
     count, last_successful_update = 0, None
-    for group in groups:
-        try:
-            result = engine.execute(update_statement, group)
-            last_successful_update = group[-1]
-            count += result.rowcount
-        except exc.OperationalError as _:
-            # try again
-            time.sleep(2)
-
+    with engine.connect() as connection:
+        for group in groups:
             try:
-                result = engine.execute(update_statement, group)
+                result = connection.execute(update_statement, group)
                 last_successful_update = group[-1]
                 count += result.rowcount
-            except exc.OperationalError as e:
-                raise OperationalError(f"Failed to update records. Last successful update: {last_successful_update}", e)
+            except exc.OperationalError as _:
+                # try again
+                time.sleep(2)
+
+                try:
+                    result = connection.execute(update_statement, group)
+                    last_successful_update = group[-1]
+                    count += result.rowcount
+                except exc.OperationalError as e:
+                    raise OperationalError(
+                        f"Failed to update records. Last successful update: {last_successful_update}", e
+                    )
 
     return count
 
@@ -201,7 +205,8 @@ def table_middleware(engine: sa.engine.base.Engine, table: str, schema: str = No
             query = query.where(sa.and_(*filters))
 
         # execute
-        results = engine.execute(query)
+        with engine.connect() as connection:
+            results = connection.execute(query)
 
         # fetch
         if rows is not None:
