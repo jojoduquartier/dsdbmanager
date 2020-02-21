@@ -17,4 +17,8 @@ There was a bug with the way credentials were stored. This caused the whole cred
 for a dialect to be replaced. It has been fixed
 
 ## [Version 1.0.2]
-The snowflake dialect has been added
+The snowflake dialect has been added 
+
+## [Version 1.0.3]
+1.0.2 build didn't have the wheel files and the requirements.txt was not included
+the manifest file has been added and a wheel file created

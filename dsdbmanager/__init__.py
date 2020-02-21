@@ -2,7 +2,7 @@ import json
 from .configuring import ConfigFilesManager
 from .dbobject import DsDbManager, DbMiddleware
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 __configurer__ = ConfigFilesManager()
 
 # first initialize empty files
