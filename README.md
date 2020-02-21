@@ -2,11 +2,17 @@
 Data Science DataBase Manager
 
 [![Travis](https://travis-ci.com/jojoduquartier/dsdbmanager.svg?branch=master)](
-    https://travis-ci.com/jojoduquartier/dsdbmanager)
+    https://travis-ci.com/jojoduquartier/dsdbmanager
+)
 [![Documentation Status](https://readthedocs.org/projects/dsdbmanager/badge/?version=latest)](
-https://dsdbmanager.readthedocs.io/en/latest/?badge=latest)
+https://dsdbmanager.readthedocs.io/en/latest/?badge=latest
+)
 [![codecov](https://codecov.io/gh/jojoduquartier/dsdbmanager/branch/master/graph/badge.svg)](
-    https://codecov.io/gh/jojoduquartier/dsdbmanager)
+    https://codecov.io/gh/jojoduquartier/dsdbmanager
+)
+[![Upload Python Package](https://github.com/jojoduquartier/dsdbmanager/workflows/Upload%20Python%20Package/badge.svg?branch=master)](
+https://pypi.org/project/dsdbmanager/
+)
     
 # Installation
 ```python
