@@ -15,7 +15,8 @@ class EmptyHostFile(BaseException_):
     """
 
     def __init__(self, message, errors=None):
-        super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
+        super().__init__(
+            f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
 class MissingFlavor(BaseException_):
@@ -24,7 +25,8 @@ class MissingFlavor(BaseException_):
     """
 
     def __init__(self, message, errors=None):
-        super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
+        super().__init__(
+            f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
 class MissingDatabase(BaseException_):
@@ -33,7 +35,8 @@ class MissingDatabase(BaseException_):
     """
 
     def __init__(self, message, errors=None):
-        super().__init__(f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
+        super().__init__(
+            f"{message}. Consider adding a database using dsdbmanager.add_database()", errors)
 
 
 class NoSuchColumn(BaseException_):
@@ -53,4 +56,8 @@ class NotImplementedFlavor(BaseException_):
 
 
 class MissingPackage(BaseException_):
+    pass
+
+
+class InvalidSubset(BaseException_):
     pass

@@ -3,8 +3,9 @@ import click
 import typing
 import pathlib
 import warnings
+from toolz import keyfilter
 from cryptography.fernet import Fernet
-from .exceptions_ import MissingFlavor, MissingDatabase
+from .exceptions_ import MissingFlavor, MissingDatabase, InvalidSubset
 from .constants import HOST_PATH, CREDENTIAL_PATH, KEY_PATH, FLAVORS_FOR_CONFIG
 
 
@@ -15,9 +16,45 @@ class ConfigFilesManager(object):
             credential_path: pathlib.Path = CREDENTIAL_PATH,
             key_path: pathlib.Path = KEY_PATH
     ):
-        self.host_location: pathlib.Path = host_path
-        self.credential_location: pathlib.Path = credential_path
-        self.key_location: pathlib.Path = key_path
+        self._host_location: pathlib.Path = host_path
+        self._credential_location: pathlib.Path = credential_path
+        self._key_location: pathlib.Path = key_path
+
+    @property
+    def host_location(self):
+        return self._host_location
+
+    @host_location.setter
+    def host_location(self, value):
+        raise AttributeError("host_location should not be changed")
+
+    @host_location.deleter
+    def host_location(self):
+        raise AttributeError("host_location should not be deleted")
+
+    @property
+    def credential_location(self):
+        return self._credential_location
+
+    @credential_location.setter
+    def credential_location(self, value):
+        raise AttributeError("credential_location should not be changed")
+
+    @credential_location.deleter
+    def credential_location(self):
+        raise AttributeError("credential_location should not be deleted")
+
+    @property
+    def key_location(self):
+        return self._key_location
+
+    @key_location.setter
+    def key_location(self, value):
+        raise AttributeError("key_location should not be changed")
+
+    @key_location.deleter
+    def key_location(self):
+        raise AttributeError("key_location should not be deleted")
 
     @classmethod
     def generate_key(cls):
@@ -28,12 +65,16 @@ class ConfigFilesManager(object):
             with self.host_location.open('r') as f:
                 hosts = json.load(f)
 
-        except (OSError, json.JSONDecodeError) as _:
+        except (OSError, json.JSONDecodeError):
             hosts = {}
 
         return hosts
 
-    def encrypt_decrypt(self, string: typing.Union[str, bytes], encrypt: bool) -> typing.Union[str, bytes]:
+    def encrypt_decrypt(
+        self,
+        string: typing.Union[str, bytes],
+        encrypt: bool
+    ) -> typing.Union[str, bytes]:
         """
         Encrypt and/or decrypt password or username based on the key
         :param string: username or password
@@ -53,8 +94,9 @@ class ConfigFilesManager(object):
 
         return fernet.decrypt(string)
 
-    # Note that ask_credentials and read_credentials both return encoded encrypted bytes.
-    # they must all be decrypted and decoded before usage - some sort of uniformity
+    # Note that ask_credentials and read_credentials both return encoded
+    # encrypted bytes. they must all be decrypted and decoded before
+    # usage - some sort of uniformity
     def ask_credentials(self):
         """
         Output must be decrypted and decoded before connection to database
@@ -80,7 +122,7 @@ class ConfigFilesManager(object):
         try:
             with self.credential_location.open('r') as f:
                 credential_file = json.load(f)
-        except (OSError, json.JSONDecodeError) as _:
+        except (OSError, json.JSONDecodeError):
             return None, None
 
         if flavor not in credential_file:
@@ -94,7 +136,14 @@ class ConfigFilesManager(object):
 
         return username.encode(), password.encode()
 
-    def write_credentials(self, flavor: str, name: str, username: bytes, password: bytes, credential_dict=None):
+    def write_credentials(
+        self,
+        flavor: str,
+        name: str,
+        username: bytes,
+        password: bytes,
+        credential_dict=None
+    ):
         """
         Writes encrypted credentials to file
         :param flavor: one of the sql flavor/dialects used. oracle, mysql, etc.
@@ -139,7 +188,10 @@ class ConfigFilesManager(object):
             raise e
 
         # database flavor
-        flavor: str = click.prompt("Database flavor", type=click.Choice(FLAVORS_FOR_CONFIG))
+        flavor: str = click.prompt(
+            "Database flavor",
+            type=click.Choice(FLAVORS_FOR_CONFIG)
+        )
         flavor = flavor.strip()
         if flavor not in host_file:
             host_file[flavor] = {}
@@ -152,20 +204,40 @@ class ConfigFilesManager(object):
         )
         name = name.strip()
         if name in current_flavor_info:
-            confirmation = click.confirm(f"There exists a {name} database in your {flavor}. Do you wish to replace it?")
+            confirmation = click.confirm(
+                f"There exists a {name} database in your {flavor}. Do you wish to replace it?")
             if not confirmation:
                 return None
 
         # additional_infos
-        host = click.prompt("Host/Database Address or Snowflake Account", type=str)
+        host = click.prompt(
+            "Host/Database Address or Snowflake Account",
+            type=str
+        )
         schema = click.prompt("Schema - Enter if none", default='', type=str)
         sid = click.prompt("SID - Enter if none", default='', type=str)
-        service_name = click.prompt("Service Name - Enter if none", default='', type=str)
-        port = click.prompt("Port Number - Enter if none", default=-1, type=int)
+        service_name = click.prompt(
+            "Service Name - Enter if none",
+            default='',
+            type=str
+        )
+        port = click.prompt(
+            "Port Number - Enter if none",
+            default=-1,
+            type=int
+        )
 
-        host_dict = dict(name=name, host=host, schema=schema, port=port, service_name=service_name, sid=sid)
+        host_dict = dict(
+            name=name,
+            host=host,
+            schema=schema,
+            port=port,
+            service_name=service_name,
+            sid=sid
+        )
 
-        # we don't want to store schema, service name or port if they are not required
+        # we don't want to store schema, service name or port if
+        # they are not required
         if not schema:
             _ = host_dict.pop('schema')
 
@@ -201,11 +273,17 @@ class ConfigFilesManager(object):
             raise e
 
         # database flavor
-        flavor: str = click.prompt("Database flavor", type=click.Choice(FLAVORS_FOR_CONFIG))
+        flavor: str = click.prompt(
+            "Database flavor",
+            type=click.Choice(FLAVORS_FOR_CONFIG)
+        )
         flavor = flavor.strip()
 
         if flavor not in host_file:
-            raise MissingFlavor(f"There are no databases with {flavor} flavor", None)
+            raise MissingFlavor(
+                f"There are no databases with {flavor} flavor",
+                None
+            )
 
         # database name
         name: str = click.prompt(
@@ -215,7 +293,10 @@ class ConfigFilesManager(object):
         name = name.strip()
 
         if name not in host_file[flavor]:
-            raise MissingDatabase(f"There are no {name} databases under the {flavor} flavor", None)
+            raise MissingDatabase(
+                f"There are no {name} databases under the {flavor} flavor",
+                None
+            )
 
         _ = host_file[flavor].pop(name)
 
@@ -270,14 +351,22 @@ class ConfigFilesManager(object):
         except (OSError, json.JSONDecodeError) as e:
             raise e
 
-        warnings.warn("Database connection will not be tested with these credentials")
+        warnings.warn(
+            "Database connection will not be tested with these credentials"
+        )
 
         # database flavor
-        flavor: str = click.prompt("Database flavor", type=click.Choice(FLAVORS_FOR_CONFIG))
+        flavor: str = click.prompt(
+            "Database flavor",
+            type=click.Choice(FLAVORS_FOR_CONFIG)
+        )
         flavor = flavor.strip()
 
         if flavor not in credential_dict:
-            raise MissingFlavor(f"There are no databases with {flavor} flavor", None)
+            raise MissingFlavor(
+                f"There are no databases with {flavor} flavor",
+                None
+            )
 
         # database name
         name: str = click.prompt(
@@ -287,12 +376,17 @@ class ConfigFilesManager(object):
         name = name.strip()
 
         if name not in credential_dict[flavor]:
-            raise MissingDatabase(f"There are no {name} databases under the {flavor} flavor", None)
+            raise MissingDatabase(
+                f"There are no {name} databases under the {flavor} flavor",
+                None
+            )
 
         username = credential_dict[flavor][name].get('username')
         username = self.encrypt_decrypt(username, encrypt=False)
 
-        confirmation = click.confirm(f"Current username is {username}. Do you wish to keep it?")
+        confirmation = click.confirm(
+            f"Current username is {username}. Do you wish to keep it?"
+        )
 
         if not confirmation:
             username = click.prompt("Username", type=str)
@@ -304,9 +398,111 @@ class ConfigFilesManager(object):
         password = self.encrypt_decrypt(password, encrypt=True)
 
         # write
-        self.write_credentials(flavor, name, username, password, credential_dict)
+        self.write_credentials(
+            flavor, name, username, password, credential_dict
+        )
 
         return None
+
+    def create_subset(
+        self,
+        flavor_db: typing.Dict[str, typing.Union[str, tuple]],
+        subset_name: str = ''
+    ) -> str:
+        """
+        Create a subfolder with its own key, config & host files
+        :param flavor_db: a dictionary mapping a dialect to dbs to subset
+        :param subset_name: maybe a project name to give this subset
+
+        example: self.create_subset(
+            {'oracle': ('db1', 'db2'), 'mysql: 'db1'}, 'projectx'
+        )
+        """
+        with self.host_location.open() as f:
+            available_dbs = json.load(f)
+
+        # if there are no common falvor/dialects raise an error
+        selected_flavors = set(flavor_db) & set(available_dbs)
+        if not selected_flavors:
+            raise InvalidSubset(
+                "The dialects you want to subset do not exist in your host file"
+            )
+
+        # we need a new key
+        key = self.generate_key()
+        fernet = Fernet(key)
+
+        def decrypt_encrypt(string: str):
+            return fernet.encrypt(self.encrypt_decrypt(string, False)).decode()
+
+        # we need a host file with only the databases user provided
+        host_dict = dict()
+        for k, v in available_dbs.items():
+            if k not in selected_flavors:
+                continue
+
+            dbs_to_keep = flavor_db[k]
+
+            if isinstance(dbs_to_keep, str):
+                if dbs_to_keep == 'all':
+                    dbs_to_keep = tuple(available_dbs[k])
+                else:
+                    dbs_to_keep = (dbs_to_keep,)
+
+            host_dict[k] = keyfilter(lambda x: x in dbs_to_keep, v)
+
+        # we need a config file as well
+        with self.credential_location.open() as f_:
+            credentials = json.load(f_)
+        cred_dict = dict()
+        for k, v in credentials.items():
+            if k not in selected_flavors:
+                continue
+
+            dbs_to_keep = flavor_db[k]
+            if isinstance(dbs_to_keep, str):
+                if dbs_to_keep == 'all':
+                    dbs_to_keep = tuple(available_dbs[k])
+                else:
+                    dbs_to_keep = (dbs_to_keep,)
+
+            cred_sub_dict = keyfilter(lambda x: x in dbs_to_keep, v)
+
+            # now we need to decrypt and encrypt
+            cred_sub_dict = {
+                dbname: {
+                    k_: decrypt_encrypt(v_)
+                    for k_, v_ in db_data.items()
+                }
+                for dbname, db_data in cred_sub_dict.items()
+            }
+            cred_dict[k] = cred_sub_dict
+
+        # save to subsets
+        subsets_folder = self.host_location.parent / 'subsets'
+        subsets_folder.mkdir(exist_ok=True)
+
+        # a reather naive way to name the subsets
+        if not subset_name:
+            subset_name = str(len(
+                [x for x in subsets_folder.iterdir() if x.is_dir()]
+            ) + 1)
+        subsets_folder = subsets_folder / subset_name
+        subsets_folder.mkdir(exist_ok=True)
+
+        try:
+            with (subsets_folder / '.configkey').open('w') as g:
+                g.write(key.decode())
+
+            with (subsets_folder / '.config.json').open('w') as g_:
+                json.dump(cred_dict, g_)
+
+            with (subsets_folder / '.hosts.json').open('w') as g__:
+                json.dump(host_dict, g__)
+        except OSError as e:
+            raise e
+
+        return f"subset {subset_name} created at {subsets_folder}"
 
     def __str__(self):
         dsc = "dsdbmanager configurer with:\n"  # first line message
@@ -314,7 +510,8 @@ class ConfigFilesManager(object):
         host_path = "- host file at: " + str(self.host_location)  # second line
         host_path = host_path.rjust(len(host_path) + 4) + '\n'
 
-        cred_path = "- credential file at: " + str(self.credential_location)  # third line
+        cred_path = "- credential file at: " + \
+            str(self.credential_location)  # third line
         cred_path = cred_path.rjust(len(cred_path) + 4) + '\n'
 
         key_path = "- key located at: " + str(self.key_location)  # fourth line

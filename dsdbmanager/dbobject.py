@@ -272,10 +272,10 @@ class DbMiddleware(object):
     """
 
     def __init__(self, engine: sa.engine.Engine, connect_only: bool, schema: str = None):
-        self.sqlalchemy_engine = engine
+        self._sqlalchemy_engine = engine
 
         if not connect_only:
-            inspection = reflection.Inspector.from_engine(self.sqlalchemy_engine)
+            inspection = reflection.Inspector.from_engine(self._sqlalchemy_engine)
             views = inspection.get_view_names(schema=schema)
             tables = inspection.get_table_names(schema=schema)
 
@@ -286,7 +286,19 @@ class DbMiddleware(object):
             self._update = TableUpdate(self.sqlalchemy_engine, schema, tables + views)
 
             for table in tables + views:
-                self.__setattr__(table, table_middleware(self.sqlalchemy_engine, table, schema=schema))
+                self.__setattr__(table, table_middleware(self._sqlalchemy_engine, table, schema=schema))
+                
+    @property
+    def sqlalchemy_engine(self):
+        return self._sqlalchemy_engine
+    
+    @sqlalchemy_engine.setter
+    def sqlalchemy_engine(self, value):
+        raise AttributeError("sqlalchemy_engine cannot be changed")
+
+    @sqlalchemy_engine.deleter
+    def sqlalchemy_engine(self):
+        del self._sqlalchemy_engine
 
     def __getitem__(self, item):
         return self.__dict__[item]
@@ -295,11 +307,13 @@ class DbMiddleware(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.sqlalchemy_engine.dispose()
+        self._sqlalchemy_engine.dispose()
         properties = map(toolz.first, inspect.getmembers(self))
         methods_only = map(toolz.first, inspect.getmembers(self, inspect.ismethod))
         attributes = filter(lambda x: not x.startswith('__'), set(properties) - set(methods_only))
         for attribute in attributes:
+            if attribute == 'sqlalchemy_engine':
+                continue  # _sqlalchemy_engine is all we need to clear
             delattr(self, attribute)
 
 

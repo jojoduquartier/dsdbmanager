@@ -22,3 +22,8 @@ The snowflake dialect has been added
 ## [Version 1.0.3]
 1.0.2 build didn't have the wheel files and the requirements.txt was not included
 the manifest file has been added and a wheel file created
+
+## [Version 1.0.4]
+- sqlalchemy_engine is read only
+- host, credential and key attibutes of configurer are read only
+- user can now create subsets. In the root folder where host is created, you will have a `subsets` folder. the goal is to be able to create different subsets for each project. Say I have 10 databases, 5 oracle and 5 mysql but I only need 2 each for a specific project. You can create a subset with a totally different encryption key that you can use on the server you want the project to run.

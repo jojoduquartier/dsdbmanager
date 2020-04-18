@@ -4,13 +4,13 @@ import pathlib
 # there should be a folder with the host file and the credentials path
 try:
     config_folder = pathlib.Path(os.environ["DSDBMANAGER_CONFIG"])
-except KeyError as _:
+except KeyError:
     config_folder = pathlib.Path.home() / ".dsdbmanager"
 
 # create folder
 try:
     config_folder.mkdir(parents=True)
-except OSError as e:
+except OSError:
     # TODO what makes sense here?
     pass
 

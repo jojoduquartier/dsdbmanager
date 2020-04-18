@@ -33,6 +33,7 @@ if not __configurer__.key_location.exists():
 add_database = __configurer__.add_new_database_info
 remove_database = __configurer__.remove_database
 reset_credentials = __configurer__.reset_credentials
+create_subset = __configurer__.create_subset
 
 
 # easy access for databases
