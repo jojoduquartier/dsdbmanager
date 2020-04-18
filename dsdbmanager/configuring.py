@@ -3,8 +3,9 @@ import click
 import typing
 import pathlib
 import warnings
+from toolz import keyfilter
 from cryptography.fernet import Fernet
-from .exceptions_ import MissingFlavor, MissingDatabase
+from .exceptions_ import MissingFlavor, MissingDatabase, InvalidSubset
 from .constants import HOST_PATH, CREDENTIAL_PATH, KEY_PATH, FLAVORS_FOR_CONFIG
 
 
@@ -24,7 +25,7 @@ class ConfigFilesManager(object):
         return self._host_location
 
     @host_location.setter
-    def host_location(self):
+    def host_location(self, value):
         raise AttributeError("host_location should not be changed")
 
     @host_location.deleter
@@ -36,7 +37,7 @@ class ConfigFilesManager(object):
         return self._credential_location
 
     @credential_location.setter
-    def credential_location(self):
+    def credential_location(self, value):
         raise AttributeError("credential_location should not be changed")
 
     @credential_location.deleter
@@ -48,7 +49,7 @@ class ConfigFilesManager(object):
         return self._key_location
 
     @key_location.setter
-    def key_location(self):
+    def key_location(self, value):
         raise AttributeError("key_location should not be changed")
 
     @key_location.deleter
@@ -405,12 +406,103 @@ class ConfigFilesManager(object):
 
     def create_subset(
         self,
-        flavor: str, db_names: typing.Union[str, tuple]
-    ):
+        flavor_db: typing.Dict[str, typing.Union[str, tuple]],
+        subset_name: str = ''
+    ) -> str:
         """
         Create a subfolder with its own key, config & host files
+        :param flavor_db: a dictionary mapping a dialect to dbs to subset
+        :param subset_name: maybe a project name to give this subset
+
+        example: self.create_subset(
+            {'oracle': ('db1', 'db2'), 'mysql: 'db1'}, 'projectx'
+        )
         """
-        pass
+        with self.host_location.open() as f:
+            available_dbs = json.load(f)
+
+        # if there are no common falvor/dialects raise an error
+        selected_flavors = set(flavor_db) & set(available_dbs)
+        if not selected_flavors:
+            raise InvalidSubset(
+                "The dialects you want to subset do not exist in your host file"
+            )
+
+        # we need a new key
+        key = self.generate_key()
+        fernet = Fernet(key)
+
+        def decrypt_encrypt(string: str):
+            return fernet.encrypt(self.encrypt_decrypt(string, False)).decode()
+
+        # we need a host file with only the databases user provided
+        host_dict = dict()
+        for k, v in available_dbs.items():
+            if k not in selected_flavors:
+                continue
+
+            dbs_to_keep = flavor_db[k]
+
+            if isinstance(dbs_to_keep, str):
+                if dbs_to_keep == 'all':
+                    dbs_to_keep = tuple(available_dbs[k])
+                else:
+                    dbs_to_keep = (dbs_to_keep,)
+
+            host_dict[k] = keyfilter(lambda x: x in dbs_to_keep, v)
+
+        # we need a config file as well
+        with self.credential_location.open() as f_:
+            credentials = json.load(f_)
+        cred_dict = dict()
+        for k, v in credentials.items():
+            if k not in selected_flavors:
+                continue
+
+            dbs_to_keep = flavor_db[k]
+            if isinstance(dbs_to_keep, str):
+                if dbs_to_keep == 'all':
+                    dbs_to_keep = tuple(available_dbs[k])
+                else:
+                    dbs_to_keep = (dbs_to_keep,)
+
+            cred_sub_dict = keyfilter(lambda x: x in dbs_to_keep, v)
+
+            # now we need to decrypt and encrypt
+            cred_sub_dict = {
+                dbname: {
+                    k_: decrypt_encrypt(v_)
+                    for k_, v_ in db_data.items()
+                }
+                for dbname, db_data in cred_sub_dict.items()
+            }
+            cred_dict[k] = cred_sub_dict
+
+        # save to subsets
+        subsets_folder = self.host_location.parent / 'subsets'
+        subsets_folder.mkdir(exist_ok=True)
+
+        # a reather naive way to name the subsets
+        if not subset_name:
+            subset_name = str(len(
+                [x for x in subsets_folder.iterdir() if x.is_dir()]
+            ) + 1)
+        subsets_folder = subsets_folder / subset_name
+        subsets_folder.mkdir(exist_ok=True)
+
+        try:
+            with (subsets_folder / '.configkey').open('w') as g:
+                g.write(key.decode())
+
+            with (subsets_folder / '.config.json').open('w') as g_:
+                json.dump(cred_dict, g_)
+
+            with (subsets_folder / '.hosts.json').open('w') as g__:
+                json.dump(host_dict, g__)
+        except OSError as e:
+            raise e
+
+        return f"subset {subset_name} created at {subsets_folder}"
 
     def __str__(self):
         dsc = "dsdbmanager configurer with:\n"  # first line message

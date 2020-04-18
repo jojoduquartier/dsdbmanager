@@ -141,3 +141,27 @@ The last command is equivalent to :code:`select [column 1], column_2 from table_
     1. You will have to use a dictionary to handle columns with spaces or begin with numbers for example.
     2. When you provide a tuple as a value, you are indicating a :code:`key in values` type filtering.
     3. If your table names have spaces or begin with numbers for example, you couldn't use the :code:`.` notation so you can do :code:`mysl_database1[table 2]` for example.
+
+Creating Subsets By Project
+*****************************
+Say you are working on many projects locally and as a result you have many hosts/credentials saved. Say Project_x only uses a subset
+and now the project must be moved to a server. It would not make sense to move the whole set of credentials to that server and the
+key used locally should not be shared. It is possible to do::
+
+    from dsdbmanager import create_subset
+    create_subset({'oracle': 'db1', 'mysql': {'db1', 'db2'}, 'mssql': 'all'}, 'project_x')
+
+The benefits of this is that it creates folders with new key and re-encrypted credentials. The folder can easily be moved wherever 
+user desires. User can then move the key out of the folder and point the `DSDBMANAGER_KEY` variable to the path. Using `all` as 
+above means that user wants to include all databases for a given dialect. This means that it is easy to re-encrypt all your 
+credentials::
+
+    create_subset({'oracle': 'all', 'mysql': 'all', 'mssql': 'all'}, 'monthly_re_encryption')
+
+
+
+Footnote - Disclaimer
+^^^^^^^^^^^^^^^^^^^^^^
+
+    1. Saving these type of info is best on a drive that is not locally and well protected by firewall rules!
+    2. It is also possible to separate the encryption key from the credentials with the `DSDBMANAGER_KEY` environment variable which should point to a path!
