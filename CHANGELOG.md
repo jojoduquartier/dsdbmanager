@@ -27,3 +27,8 @@ the manifest file has been added and a wheel file created
 - sqlalchemy_engine is read only
 - host, credential and key attibutes of configurer are read only
 - user can now create subsets. In the root folder where host is created, you will have a `subsets` folder. the goal is to be able to create different subsets for each project. Say I have 10 databases, 5 oracle and 5 mysql but I only need 2 each for a specific project. You can create a subset with a totally different encryption key that you can use on the server you want the project to run.
+
+## [Version 1.0.5]
+- no breaking changes
+- snowflake connection is rather different so changes were made so that user can enter all snowflake specific connection parameters
+- If users want to use the snowflake connection object, they can use a `raw_connection` argument in `dsdbmanager.snowflake_.Snowflake.create_engine`

@@ -176,6 +176,25 @@ class ConfigFilesManager(object):
 
         return None
 
+    def _snowflake_params(self):
+        account: str = click.prompt(
+            "Account for database - probably the beging of what ends with snowflakecomputing.com",
+            type=str
+        )
+
+        database: str = click.prompt("Database to connect to", type=str)
+        schema: str = click.prompt("Schema for database", type=str)
+        warehouse: str = click.prompt("Warehouse for the database", type=str)
+        role: str = click.prompt("User role", default='', type=str)
+
+        return dict(
+            account=account,
+            database=database,
+            schema=schema,
+            warehouse=warehouse,
+            role=role
+        )
+
     def add_new_database_info(self):
         """
         Add new database
@@ -197,61 +216,77 @@ class ConfigFilesManager(object):
             host_file[flavor] = {}
         current_flavor_info = host_file.get(flavor, {})
 
-        # database name
-        name: str = click.prompt(
-            "Name for database - for some flavors like mysql database name is used to create engine",
-            type=str
-        )
-        name = name.strip()
-        if name in current_flavor_info:
-            confirmation = click.confirm(
-                f"There exists a {name} database in your {flavor}. Do you wish to replace it?")
-            if not confirmation:
-                return None
+        if flavor == 'snowflake':
+            snowflake_dict = self._snowflake_params()
+            snowflake_dict = {k: v.strip() for k, v in snowflake_dict.items()}
+            name = snowflake_dict['database']
+            if name in current_flavor_info:
+                confirmation = click.confirm(
+                    f"There exists a {name} database in your {flavor}. Do you wish to replace it?"
+                )
+                if not confirmation:
+                    return None
 
-        # additional_infos
-        host = click.prompt(
-            "Host/Database Address or Snowflake Account",
-            type=str
-        )
-        schema = click.prompt("Schema - Enter if none", default='', type=str)
-        sid = click.prompt("SID - Enter if none", default='', type=str)
-        service_name = click.prompt(
-            "Service Name - Enter if none",
-            default='',
-            type=str
-        )
-        port = click.prompt(
-            "Port Number - Enter if none",
-            default=-1,
-            type=int
-        )
+            # set data
+            host_file[flavor][name] = snowflake_dict
 
-        host_dict = dict(
-            name=name,
-            host=host,
-            schema=schema,
-            port=port,
-            service_name=service_name,
-            sid=sid
-        )
+        else:
+            # database name
+            name: str = click.prompt(
+                "Name for database - for some flavors like mysql database name is used to create engine",
+                type=str
+            )
+            name = name.strip()
+            if name in current_flavor_info:
+                confirmation = click.confirm(
+                    f"There exists a {name} database in your {flavor}. Do you wish to replace it?")
+                if not confirmation:
+                    return None
 
-        # we don't want to store schema, service name or port if
-        # they are not required
-        if not schema:
-            _ = host_dict.pop('schema')
+            # additional_infos
+            host = click.prompt(
+                "Host/Database Address or Snowflake Account",
+                type=str
+            )
+            schema = click.prompt(
+                "Schema - Enter if none", default='', type=str)
+            sid = click.prompt("SID - Enter if none", default='', type=str)
+            service_name = click.prompt(
+                "Service Name - Enter if none",
+                default='',
+                type=str
+            )
+            port = click.prompt(
+                "Port Number - Enter if none",
+                default=-1,
+                type=int
+            )
 
-        if not service_name:
-            _ = host_dict.pop('service_name')
+            host_dict = dict(
+                name=name,
+                host=host,
+                schema=schema,
+                port=port,
+                service_name=service_name,
+                sid=sid
+            )
 
-        if not sid:
-            _ = host_dict.pop('sid')
+            # we don't want to store schema, service name or port if
+            # they are not required
+            if not schema:
+                _ = host_dict.pop('schema')
 
-        if port == -1:
-            _ = host_dict.pop('port')
+            if not service_name:
+                _ = host_dict.pop('service_name')
 
-        # set data
-        host_file[flavor][name] = host_dict
+            if not sid:
+                _ = host_dict.pop('sid')
+
+            if port == -1:
+                _ = host_dict.pop('port')
+
+            # set data
+            host_file[flavor][name] = host_dict
 
         try:
             with self.host_location.open('w') as f:
