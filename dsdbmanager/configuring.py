@@ -261,6 +261,11 @@ class ConfigFilesManager(object):
                 default=-1,
                 type=int
             )
+            use_dbname_to_connect = click.prompt(
+                "Database Name is used in MySql/MSSql connection string (True or False)?",
+                default=True,
+                type=bool
+            )
 
             host_dict = dict(
                 name=name,
@@ -268,7 +273,8 @@ class ConfigFilesManager(object):
                 schema=schema,
                 port=port,
                 service_name=service_name,
-                sid=sid
+                sid=sid,
+                use_dbname_to_connect=use_dbname_to_connect
             )
 
             # we don't want to store schema, service name or port if
