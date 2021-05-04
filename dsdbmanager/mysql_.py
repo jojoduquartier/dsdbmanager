@@ -38,7 +38,7 @@ class Mysql:
             import pymysql
         except ImportError as e:
             raise MissingPackage(
-                "You need the pymysql package to initiate connection", e
+                "You need the PyMySQL package to initiate connection", e
             )
 
         host = self.host_dict.get('host')
