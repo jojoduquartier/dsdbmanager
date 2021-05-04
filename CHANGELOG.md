@@ -32,3 +32,9 @@ the manifest file has been added and a wheel file created
 - no breaking changes
 - snowflake connection is rather different so changes were made so that user can enter all snowflake specific connection parameters
 - If users want to use the snowflake connection object, they can use a `raw_connection` argument in `dsdbmanager.snowflake_.Snowflake.create_engine`
+
+## [Version 1.0.6]
+- no breaking changes
+- mysql and mssql doesn't always use database names in connection string. I encountered cases like these recently so I added a boolean field
+when adding new databases. The field `use_dbname_to_connect` should be `True` if user wants database name to be used in database connection and `False` otherwise.
+This change should only impact mysql and mssql connections.

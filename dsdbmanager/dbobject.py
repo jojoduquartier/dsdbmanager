@@ -276,11 +276,18 @@ class DbMiddleware(object):
 
         if not connect_only:
             inspection = reflection.Inspector.from_engine(self._sqlalchemy_engine)
-            views = inspection.get_view_names(schema=schema)
-            tables = inspection.get_table_names(schema=schema)
+            # without schema, the inspector throws AttributeError
+            # any other error should be raised
+            try:
+                views = inspection.get_view_names(schema=schema)
+                tables = inspection.get_table_names(schema=schema)
+
+            except AttributeError as _:
+                views, tables = [], []
 
             if not (tables + views):
                 pass
+            
             self._metadata = TableMeta(self.sqlalchemy_engine, schema, tables + views)
             self._insert = TableInsert(self.sqlalchemy_engine, schema, tables + views)
             self._update = TableUpdate(self.sqlalchemy_engine, schema, tables + views)
